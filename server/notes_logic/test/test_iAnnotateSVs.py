@@ -1,8 +1,4 @@
-'''
-Created on 20/02/2015
-@author: Ronak H Shah
 
-'''
 import pytest
 import filecmp
 import os
