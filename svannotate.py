@@ -195,7 +195,7 @@ class sv(object):
             chr1, pos1 = self.__bkp1.split(":")
             chr2, pos2 = self.__bkp2.split(":")
         except ValueError:
-            raise IncorrectBreakpointFormat()
+            raise IncorrectBkpFormat()
         
         if chr1 == "X":
             self.__tranlocationCoordOrder[1] = self.__bkp1
