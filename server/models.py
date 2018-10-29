@@ -1,18 +1,25 @@
 class SV(object):
+    '''Define SV object that holds all key information'''
     def __init__(self, svtype, bkp1, bkp2, genes, site1, site2, description, connection):
        self.__svtype = svtype
-       self.__chr1 = bkp1.split(":")[0]
-       self.__coord1 = bkp1.split(":")[1]
-       self.__chr2 = bkp2.split(":")[0]
-       self.__coord2 = bkp2.split(":")[1]
+       self.__bkp1 = bkp1
+       self.__bkp2 = bkp2
        self.__genes = genes
        self.__site1 = site1
        self.__site2 = site2
        self.__description = description
+       self.__connection = connection
+    
+    def __setBkp():
+        try:
+            (self.__chr1, self.__coord1) = self.__bkp1.split(":")
+        except ValueError as e:
+            return e
+        return
 
 
 class Error(Exception):
-    '''Base class for other excpetions'''
+    '''Base class for other exceptions'''
     pass
 class MissingCytoBandError(Error):
     '''Raised when no cytoband was identified for a breakpoint'''
@@ -22,14 +29,16 @@ class MultipleCytoBandError(Error):
     '''Raised when multiple cytoband were identified for a breakpoint'''
     def __init__(self):
         Exception.__init__(self, "Multiple cytobands identified for the breakpoint.")
-    pass
 class CanonicalTranscriptError(Error):
-    '''Raise when canonical transcript not found'''
+    '''Raised when canonical transcript not found'''
     def __init__(self):
         Exception.__init__(self, "Cannot find a canonical transcript for the breakpoint.")
-    pass
+class MultipleCanonicalTxError(Error):
+    '''Raised when multiple canonical transcript versions exist'''
+    def __init__(self):
+        Exception.__init__(self,"Multiple versions of canonical transcript exists.")
 
-'''       
+'''  
        In[90]: class Error(Exception):
     ...:    """Base class for other exceptions"""
     ...: pass

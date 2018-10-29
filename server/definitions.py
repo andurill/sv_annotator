@@ -21,24 +21,17 @@ def make_cytoband_table(file):
 
 def make_canonicalTx_table(file):
     '''
-    creates a dictionary of canonical transcript mapped to Gene name
+    creates a pandas data frame of refseq canonical transcripts
+    mapped to ensembl transcripts and hugo name
     '''
-    # type: (File) -> Dict[Str, Str]
-    Tx_dict = {}
+    # type: (File) -> pandaDataFrame
     try:
-        with open(file, r) as f:
-            for line in f:
-                if "#" in line:
-                    continue
-                else:
-                    line = line.strip().split("\t")
-                    gene = line[0]
-                    tx_id = line[1]
-                    Tx_dict[tx_id] = gene
+        Tx_df = pd.read_csv(file, sep="\t", header=0, \
+        column=["Ensembl", "Refseq", "Gene"])
     except IOError as e:
         print e
         raise
-    return Tx_dict
+    return Tx_df
 
 
 def make_refFlatTable(file):
