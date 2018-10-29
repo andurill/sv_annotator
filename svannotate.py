@@ -1,14 +1,17 @@
 import os
 import sys
+import requests
 import pandas as pd
 import numpy as np
-import constants
+import timeit
+from main import constants
+from main import models
 from main import annotation
 from main import notes
 from main import position
 
 
-# Global Variables
+# Global Variables from constants
 target_panel = IMPACTv6_targets
 panelKinase = IMPACTv6_kinase_targets
 oncoKb = OncoKb_known_fusions
@@ -85,46 +88,6 @@ class sv(object):
         except ValueError:
             raise IncorrectBkpFormat()
 
-        # IF PROTEIN FUSION
-        if self.__description.startswith("Protein Fusion: "):
-            self.__isFusion = True
-            s = self.__description
-            self.__fusionGene = s[s.find("{")+1:s.find("}")]
-            # check if fusion is defined in the correct format Gene1:Gene2
-            try:
-                self.__fusionPartner1, self.__fusionPartner2 = self.__fusionGene.split(":")
-            except ValueError:
-                raise IncorrectDescriptionFormat()
-
-            # Check if fusion partners match the genes provided as inputs
-            for gene in (self.__fusionPartner1, self.__fusionPartner2):
-                if gene not in (self.__gene1, self.__gene2):
-                    raise FusionGeneConflict(gene)
-
-            # Is fusion known?
-            if self.__fusionGene in oncoKb:
-                self.__isKnownFusion = True
-            else:
-                self.__isKnownFusion = False
-
-        # IF NOT FUSION
-        else:
-            self.__fusionGene = None
-            self.__isFusion = False
-            self.__isKnownFusion = False
-
-        # Is SV intragenic?
-        if self.__gene1 == self.__gene2:
-            self.__isIntragenic = True
-        else:
-            self.__isIntragenic = False
-
-        # Are one or both genes in panel and kinase?
-        self.__kinase_genes = set()
-        for gene in self.__gene1, self.__gene2:
-            if target_panel[gene] and panelKinase[gene]:
-                self.__kinase_genes.add(gene)
-
         # get canonical transcript(s) for gene1, otherwise raise exception
         if refFlat[self.__gene1]:
             self.__transcript1 = refFlat[self.__gene1]
@@ -142,7 +105,7 @@ class sv(object):
             self.__isGene1InPanel = True
         else:
             self.__isGene1InPanel = False
-        
+
         # Is gene2 in panel?
         if target_panel[self.__gene2]:
             self.__isGene2InPanel = True
@@ -151,9 +114,57 @@ class sv(object):
 
         if self.__isGene1InPanel is False and self.__isGene2InPanel is False:
             raise GenesNotInPanel()
+
+        # Is SV intragenic?
+        if self.__gene1 == self.__gene2:
+            self.__isIntragenic = True
+        else:
+            self.__isIntragenic = False
+
+        # Are one or both genes in panel and kinase?
+        self.__kinase_genes = set()
+        for gene in self.__gene1, self.__gene2:
+            if target_panel[gene] and panelKinase[gene]:
+                self.__kinase_genes.add(gene)
+
+        # IF PROTEIN FUSION
+        if self.__description.startswith("Protein Fusion: "):
+            self.__isFusion = True
+            s = self.__description
+            self.__fusionGene = s[s.find("{")+1:s.find("}")]
+            # check if fusion is defined in the correct format Gene1:Gene2
+            try:
+                self.__fusionPartner1, self.__fusionPartner2 = self.__fusionGene.split(":")
+            except ValueError:
+                raise IncorrectDescriptionFormat()
+
+            # Check if fusion partners match the genes provided as inputs
+            for gene in (self.__fusionPartner1, self.__fusionPartner2):
+                if gene not in (self.__gene1, self.__gene2):
+                    raise FusionGeneConflict(gene)
+            if self.__fusionPartner1 == self.__gene1:
+                self.__fusionTranscript1 = self.__transcript1
+                self.__fusionTranscript2 = self.__transcript2
+            else:
+                self.__fusionTranscript2 = self.__transcript1
+                self.__fusionTranscript1 = self.__transcript2
+
+            # Is fusion known?
+            if self.__fusionGene in oncoKb:
+                self.__isKnownFusion = True
+            else:
+                self.__isKnownFusion = False
+
+        # IF NOT FUSION
+        else:
+            self.__fusionGene = None
+            self.__isFusion = False
+            self.__isKnownFusion = False
+
+
         
 
-    # define breakpoint order    
+    # define breakpoint order   (NOT USED AT THIS TIME) 
     def __set_bkpOrder(self):
         self.__bkpOrder = {}
         self.__tranlocationCoordOrder = {}
