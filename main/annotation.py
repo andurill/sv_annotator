@@ -44,7 +44,7 @@ def get_coordinates(sv):
             cdna1 = cdna1 + ":" + self.__gene1
 
         if sv.__isFusion:
-            if self.__fusionPartner1 == self.__gene1:
+            if self.__fusionPartner1 == self.__gene1
 
 
 

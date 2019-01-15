@@ -31,7 +31,9 @@ def get_cdna_pos(bkp, transcripts):
 def make_get_request(query):
   server = "http://grch37.rest.ensembl.org"
   ext = "/variant_recoder/human/" + query
-  request = requests.get(server+ext, headers={ "Content-Type" : "application/json"})
+  try:
+    request = requests.get(server+ext, headers={ "Content-Type" : "application/json"})
+  except ConnectionError
   return request
 
 

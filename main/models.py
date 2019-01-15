@@ -129,26 +129,26 @@ class sv(object):
 
         # set translocation coordinate order
         if self.__svtype == "TRANSLOCATION":
-        try:
-            chr1, pos1 = self.__bkp1.split(":")
-            chr2, pos2 = self.__bkp2.split(":")
-        except ValueError:
-            raise IncorrectBkpFormat()
+            try:
+                chr1, pos1 = self.__bkp1.split(":")
+                chr2, pos2 = self.__bkp2.split(":")
+            except ValueError:
+                raise IncorrectBkpFormat()
 
-        if chr1 == "X":
-            self.__tranlocationCoordOrder[1] = self.__bkp1
-            self.__tranlocationCoordOrder[2] = self.__bkp2
-        elif chr2 == "X":
-            self.__tranlocationCoordOrder[1] = self.__bkp2
-            self.__tranlocationCoordOrder[2] = self.__bkp1
-        elif int(chr1) < int(chr2):
-            self.__tranlocationCoordOrder[1] = self.__bkp1
-            self.__tranlocationCoordOrder[2] = self.__bkp2
-        elif int(chr1) > int(chr2):
-            self.__tranlocationCoordOrder[1] = self.__bkp2
-            self.__tranlocationCoordOrder[2] = self.__bkp1
-        else:
-            raise BreakpointConflictForTranslocation()
+            if chr1 == "X":
+                self.__tranlocationCoordOrder[1] = self.__bkp1
+                self.__tranlocationCoordOrder[2] = self.__bkp2
+            elif chr2 == "X":
+                self.__tranlocationCoordOrder[1] = self.__bkp2
+                self.__tranlocationCoordOrder[2] = self.__bkp1
+            elif int(chr1) < int(chr2):
+                self.__tranlocationCoordOrder[1] = self.__bkp1
+                self.__tranlocationCoordOrder[2] = self.__bkp2
+            elif int(chr1) > int(chr2):
+                self.__tranlocationCoordOrder[1] = self.__bkp2
+                self.__tranlocationCoordOrder[2] = self.__bkp1
+            else:
+                raise BreakpointConflictForTranslocation()
 
 # not used at the moment
 
@@ -189,8 +189,9 @@ class Error(Exception):
 class MissingCytoBand(Error):
     '''Raised when no cytoband was identified for a breakpoint'''
 
-    def __init__(self):
-        Exception.__init__(self, "No cytobands identified for the breakpoint.")
+    def __init__(self, bkp):
+        Exception.__init__(self, "No cytobands identified for the breakpoint: " + bkp
+        )
 
 
 class MultipleCytoBand(Error):
@@ -198,7 +199,8 @@ class MultipleCytoBand(Error):
 
     def __init__(self):
         Exception.__init__(
-            self, "Multiple cytobands identified for the breakpoint.")
+            self, "Multiple cytobands identified for the breakpoint: " + bkp
+            )
 
 
 class CanonicalTranscriptNotFound(Error):
@@ -206,7 +208,8 @@ class CanonicalTranscriptNotFound(Error):
 
     def __init__(self, gene):
         Exception.__init__(
-            self, "Cannot find a canonical transcript for the gene: " + gene)
+            self, "Cannot find a canonical transcript for the gene: " + gene
+            )
 
 
 class IncorrectGenesFormat(Error):
@@ -214,7 +217,8 @@ class IncorrectGenesFormat(Error):
 
     def __init__(self):
         Exception.__init__(
-            self, "Input genes are not in required format. Should be in 'Gene1 / Gene2' format.")
+            self, "Input genes are not in required format. Should be in 'Gene1 / Gene2' format."
+            )
 
 
 class IncorrectBkpFormat(Error):
@@ -222,16 +226,8 @@ class IncorrectBkpFormat(Error):
 
     def __init__(self, bkp):
         Exception.__init__(
-            self, "Format of breakpoint " + str(bkp) + "does not match the required format. Example '7:1234567'.)
-
-
-class IncorrectBkpFormat(Error):
-    '''Raised when a bkp format does not match expected'''
-
-    def __init__(self, bkp):
-        Exception.__init__(
-            self, "Format of breakpoint " + str(bkp) + "does not match the required format. Example '7:1234567'.)
-#define reamining exception
+            self, "Format of breakpoint " + str(bkp) + "does not match the required format. Example '7:1234567'".
+            )
 
 
 class IncorrectDescriptionFormat(Error):
@@ -266,7 +262,7 @@ class cdnaNotFound(Error):
 
     def __init__(self, bkp):
         Exception.__init__(
-            self, "Cannot determine cDNA annotation for the breakpoint: " + bkp
+            self, "Cannot determine cDNA annotation using vep for the breakpoint: " + bkp
         )
 
 
