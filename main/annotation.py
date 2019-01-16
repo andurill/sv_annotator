@@ -1,3 +1,6 @@
+import requests
+from main.models import *
+
 
 def annotate_variant(sv):
     sv.__bkpOrder = {}
@@ -43,8 +46,8 @@ def get_coordinates(sv):
         if not cdna1.startswith("chr"):
             cdna1 = cdna1 + ":" + self.__gene1
 
-        if sv.__isFusion:
-            if self.__fusionPartner1 == self.__gene1
+        #if sv.__isFusion:
+        #    if self.__fusionPartner1 == self.__gene1
 
 
 
@@ -62,58 +65,58 @@ def get_cytoband(bkp):
 
 
 def get_cdna_pos(bkp, transcripts):
-  dummy_ref = "C"
-  query = make_query(bkp, dummy_ref)
+    dummy_ref = "C"
+    query = make_query(bkp, dummy_ref)
 
-  # get request max twice to VEP for annotation
-  request = make_get_request(query)
-  if not request.ok:
-    #rx = re.compile("\([A|C|G|T]\)")
-    #actual_ref = rx.findall(request.text)
-    s = request.text
-    actual_ref = s[s.find("(")+1:s.find(")")] 
-    if actual_ref not in ["A", "C", "G", "T"] or actual_ref == dummy_ref:
-      request.raise_for_status()
-    query = make_query(bkp, actual_ref)
+    # get request max twice to VEP for annotation
     request = make_get_request(query)
     if not request.ok:
-      request.raise_for_status()
+        #rx = re.compile("\([A|C|G|T]\)")
+        #actual_ref = rx.findall(request.text)
+        s = request.text
+        actual_ref = s[s.find("(")+1:s.find(")")] 
+        if actual_ref not in ["A", "C", "G", "T"] or actual_ref == dummy_ref:
+            request.raise_for_status()
+            query = make_query(bkp, actual_ref)
+            request = make_get_request(query)
+            if not request.ok:
+                request.raise_for_status()
 
-  decoded = request.json()
-  result = dict(str(s).split(':', 1) for s in decoded[0])
-  for tx in transcripts:
-    cdna = result[tx]
-    if cdna:
-      cdna = cdna[:-3]
-      if cdna.startswith("-"):
-          cdna = "chr" + bkp.replace(":", ":g.")
-      return tx, cdna
-  raise cdnaNotFound()
+    decoded = request.json()
+    result = dict(str(s).split(':', 1) for s in decoded[0])
+    for tx in transcripts:
+        cdna = result[tx]
+        if cdna:
+            cdna = cdna[:-3]
+        if cdna.startswith("-"):
+            cdna = "chr" + bkp.replace(":", ":g.")
+            return tx, cdna
+    raise cdnaNotFound(bkp)
 
 
 def make_get_request(query):
-  server = "http://grch37.rest.ensembl.org"
-  ext = "/variant_recoder/human/" + query
-  try:
-    request = requests.get(
-        server+ext, headers={"Content-Type": "application/json"})
+    server = "http://grch37.rest.ensembl.org"
+    ext = "/variant_recoder/human/" + query
+    try:
+        request = requests.get(
+            server+ext, headers={"Content-Type": "application/json"})
     except requests.exceptions.RequestException as e:
         raise e
-  return request
+    return request
 
 
 def make_query(bkp, dummy_ref):
-  chrom, pos = bkp.split(":")
-  revcomp = {
-      "A": "T",
-      "T": "A",
-      "C": "G",
-      "G": "C",
-      "N": "N"
-  }
-  dummy_alt = revcomp[dummy_ref]
-  query = chrom + ":g." + pos + dummy_ref + ">" + dummy_alt + "?"
-  return query
+    chrom, pos = bkp.split(":")
+    revcomp = {
+        "A": "T",
+        "T": "A",
+        "C": "G",
+        "G": "C",
+        "N": "N"
+        }
+    dummy_alt = revcomp[dummy_ref]
+    query = chrom + ":g." + pos + dummy_ref + ">" + dummy_alt + "?"
+    return query
 
 
 def reformat(svtype):
