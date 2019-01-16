@@ -13,9 +13,9 @@ class bkp(object):
 
     def __expand(self, target_panel, panelKinase, refFlat):
         if refFlat[self.gene]:
-            self.transcript = refFlat[self.id]
+            self.transcript = refFlat[self.gene]
         else:
-            raise CanonicalTranscriptNotFound(self.id)
+            raise CanonicalTranscriptNotFound(self.gene)
 
         if target_panel[self.gene]:
             self.isPanel = True
@@ -92,9 +92,21 @@ class sv(object):
                     self.__annotationPartner1, self.__annotationPartner2 = self.bkp1, self.bkp2
                 else:
                     self.__annotationPartner1, self.__annotationPartner2 = self.bkp2, self.bkp1
-            elif 
+            elif str(self.bkp1.chrom) == "X":
+                self.__annotationPartner1, self.__annotationPartner2 = self.bkp1, self.bkp2
+            elif str(self.bkp2.chrom) == "X":
+                self.__annotationPartner1, self.__annotationPartner2 = self.bkp2, self.bkp1
+            elif str(self.bkp1.chrom) == "Y":
+                self.__annotationPartner1, self.__annotationPartner2 = self.bkp1, self.bkp2
+            else:
+                self.__annotationPartner1, self.__annotationPartner2 = self.bkp2, self.bkp1
+        elif self.__isFusion is True:
+            self.__annotationPartner1, self.__annotationPartner2 = self.__fusionPartner1, self.__fusionPartner2
+        elif self.bkp1.isPanel is True and self.bkp2.isPanel is True:
+            self.__annotationPartner1, self.__annotationPartner2 = self.bkp1, self.bkp2
+        elif
 
-            
+
     def __set_bkpOrder(self):
         self.__bkpOrder = {}
         self.__tranlocationCoordOrder = {}
