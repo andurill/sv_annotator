@@ -10,24 +10,21 @@ class bkp(object):
             self.gene = str(gene)
             self.desc = str(desc)
         except TypeError:
-            print(
+            raise Exception(
                 "Could not create a new instance of bkp class due to inappropriate values for parameters.")
-        except:
-            print("Unexpected error:", sys.exc_info()[0])
-            raise
+        except Exception as e:
+            raise e
 
     def expand(self, target_panel, panelKinase, refFlat):
         if self.gene in refFlat:
             self.transcript = refFlat[self.gene]
         else:
             raise CanonicalTranscriptNotFound(self.gene)
-        print self.transcript
         try:
             self.transcript, self.cdna = get_cdna_pos(self)
             self.transcript = self.transcript.split(".")[0]
         except ValueError:
             raise GenomicPosition(self)
-        print self.transcript, self.cdna
         if self.cdna and self.cdna.startswith("c."):
             self.isCoding = True
         else:
@@ -312,12 +309,3 @@ def make_query(bkp, dummy_ref):
     dummy_alt = revcomp[dummy_ref]
     query = chrom + ":g." + str(coord) + dummy_ref + ">" + dummy_alt + "?"
     return query
-
-
-def reformat(svtype):
-    svdict = {
-        "DUPLICATION": "dup",
-        "DELETION": "del",
-        "INVERSION": "inv"
-    }
-    return svdict[svtype]
