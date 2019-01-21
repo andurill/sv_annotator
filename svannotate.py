@@ -1,59 +1,67 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+
 import os
 import sys
 import requests
 import pandas as pd
 import numpy as np
 import timeit
-from main import constants
-from main import models
-from main import annotation
-from main import notes
-from main import position
+from main.constants import *
+from main.models import *
+#import main.notes as notes
+#import main.position as pos
+from main.annotation import *
 
 
 # Global Variables from constants
 target_panel = IMPACTv6_targets
 panelKinase = IMPACTv6_kinase_targets
 oncoKb = OncoKb_known_fusions
+refFlat = refFlat_canonical
+cb_df = cb_df
 
 
-def main(args):
+def annotate_SV(raw):
+    message, note, annotation, position = [None]*4
     try:
-        svtype, bkp1, bkp2, genes, site1, site2, description, connection = args[0].split(",")
-    except ValueError:
-        raise IncorrectSVInputArguments()
-
-    variant = sv(svtype, bkp1, bkp2, genes, site1, site2, description, connection)
+        svtype, bkp1, bkp2, genes, site1, site2, description, connection = raw.split(",")
+    except ValueError as e:
+        message = e
+        return message, note, annotation, position
 
     try:
-        variant.__set_variables(target_panel, panelKinase, oncoKb, refFlat)
-    except:
-        raise
+        variant = sv(svtype, bkp1, bkp2, genes, site1, site2, description, connection)
+    except Exception as e:
+        message = e
+        return message, note, annotation, position       
+
+    try:
+        variant.expand(target_panel, panelKinase, oncoKb, refFlat)
+    except Exception as e:
+        message = e
+        return message, note, annotation, position
 
     try:
         annotation = get_variant_annotation(variant)
-    except:
-        raise
-    
-    try:
-        note = get_variant_note(variant, annotation)
-    except:
-        raise
+    except Exception as e:
+        message = e
+        return message, note, annotation, position
 
-    try:
-        position = get_variant_position(note)
-    except:
-        raise
-    
-    try:
-        note = special_cases(note)
-    except:
-        raise
+    return message, note, annotation, position
 
+
+if __name__ == "__main__":
+    message, note, annotation, position = annotate_SV(sys.argv[1])
+    if note and position and annotation:
+        status = "SUCCESS"
+    else:
+        status = "FAILED"
     result = {
-        'Note' : note,
-        'Annotation' : annotation,
-        'Position' : position
+        'Note': note,
+        'Annotation': annotation,
+        'Position': position,
+        'status': status,
+        'message': message
     }
-
-    return result
+    print result

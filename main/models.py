@@ -1,4 +1,6 @@
-import os, sys
+#!/usr/bin/env python2
+import os, sys, requests
+
 
 class bkp(object):
     def __init__(self, chrom, pos, gene, desc):
@@ -8,23 +10,35 @@ class bkp(object):
             self.gene = str(gene)
             self.desc = str(desc)
         except TypeError:
-            print("Could not create a new instance of bkp class due to inappropriate values for parameters.")
+            print(
+                "Could not create a new instance of bkp class due to inappropriate values for parameters.")
         except:
             print("Unexpected error:", sys.exc_info()[0])
             raise
 
-    def __expand(self, target_panel, panelKinase, refFlat):
-        if refFlat[self.gene]:
+    def expand(self, target_panel, panelKinase, refFlat):
+        if self.gene in refFlat:
             self.transcript = refFlat[self.gene]
         else:
             raise CanonicalTranscriptNotFound(self.gene)
+        print self.transcript
+        try:
+            self.transcript, self.cdna = get_cdna_pos(self)
+            self.transcript = self.transcript.split(".")[0]
+        except ValueError:
+            raise GenomicPosition(self)
+        print self.transcript, self.cdna
+        if self.cdna and self.cdna.startswith("c."):
+            self.isCoding = True
+        else:
+            self.isCoding = False
 
-        if target_panel[self.gene]:
+        if self.gene in target_panel:
             self.isPanel = True
         else:
             self.isPanel = False
 
-        if panelKinase[self.gene]:
+        if self.gene in panelKinase:
             self.isKinase = True
         else:
             self.isKinase = False
@@ -32,82 +46,90 @@ class bkp(object):
 
 class sv(object):
     def __init__(self, svtype, bkp1, bkp2, genes, site1, site2, description, connection):
-        self.__svtype = svtype
-        self.__site1 = site1
-        self.__site2 = site2
-        self.__description = description
-        self.__connection = connection
+        self.svtype = svtype
+        self.site1 = site1
+        self.site2 = site2
+        self.description = description
+        self.connection = connection
         try:
-            self.__chr1, self.__pos1 = bkp1.split(":") #IncorrectBkpFormat
-            self.__chr2, self.__pos2 = bkp2.split(":") #IncorrectBkpFormat
-            self.__gene1, self.__gene2 = genes.split(" / ") #IncorrectGenesFormat
+            self.chr1, self.pos1 = bkp1.split(":")  # IncorrectBkpFormat
+            self.chr2, self.pos2 = bkp2.split(":")  # IncorrectBkpFormat
+            self.gene1, self.gene2 = genes.split(" / ")  # IncorrectGenesFormat
         except ValueError:
-            print("Could not create a new instance of sv class due to inappropriate values for parameters.")
+            raise Exception(
+                "Could not create a new instance of sv class due to inappropriate values for parameters.")
 
-    def __expand(self, target_panel, panelKinase, oncoKb, refFlat):
-        self.bkp1 = bkp(self.__chr1, self.__pos1, self.__gene1, self.__site1)
-        self.bkp2 = bkp(self.__chr2, self.__pos2, self.__gene2, self.__site2)
-        self.bkp1.__expand(target_panel, panelKinase, refFlat)
-        self.bkp2.__expand(target_panel, panelKinase, refFlat)
+    def expand(self, target_panel, panelKinase, oncoKb, refFlat):
+        self.bkp1 = bkp(self.chr1, self.pos1, self.gene1, self.site1)
+        self.bkp2 = bkp(self.chr2, self.pos2, self.gene2, self.site2)
+        self.bkp1.expand(target_panel, panelKinase, refFlat)
+        self.bkp2.expand(target_panel, panelKinase, refFlat)
 
         # Define key variables
         if self.bkp1.isPanel is False and self.bkp2.isPanel is False:
             raise GenesNotInPanel()
 
-        # Is SV intragenic?
-        if self.bkp1.gene == self.bkp2.gene:
-            self.__isIntragenic = True
+        if (self.bkp1.isPanel and self.bkp1.isCoding) or \
+        (self.bkp2.isPanel and self.bkp2.isCoding):
+            pass
         else:
-            self.__isIntragenic = False
+            raise BothBreakpointsNoncoding()
+
+        # Is SV intragenic?
+        if self.bkp1.gene == self.bkp2.gene and self.bkp1.isCoding and self.bkp2.isCoding:
+            self.isIntragenic = True
+        else:
+            self.isIntragenic = False
 
         # Fusion variables
-        if self.__description.startswith("Protein Fusion: "):
-            self.__isFusion = True
-            s = self.__description
-            self.__fusionGene = s[s.find("{")+1:s.find("}")]
+        if self.description.startswith("Protein Fusion: "):
+            self.isFusion = True
+            s = self.description
+            self.fusionGene = s[s.find("{")+1:s.find("}")]
             # check if fusion is defined in the correct format Gene1:Gene2
             try:
-                self.__fusionPartner1, self.__fusionPartner2 = self.__fusionGene.split(":")
+                self.fusionPartner1, self.fusionPartner2 = self.fusionGene.split(
+                    ":")
             except ValueError:
                 raise IncorrectDescriptionFormat()
 
             # Check if fusion partners match the genes provided as inputs
-            if self.__fusionPartner1 == self.bkp1.gene and self.__fusionPartner2 == self.bkp2.gene:
-                self.__fusionPartner1, self.__fusionPartner2 = self.bkp1, self.bkp2
-            elif self.__fusionPartner2 == self.bkp1.gene and self.__fusionPartner1 == self.bkp2.gene:
-                self.__fusionPartner2, self.__fusionPartner1 = self.bkp1, self.bkp2      
+            if self.fusionPartner1 == self.bkp1.gene and self.fusionPartner2 == self.bkp2.gene:
+                self.fusionPartner1, self.fusionPartner2 = self.bkp1, self.bkp2
+            elif self.fusionPartner2 == self.bkp1.gene and self.fusionPartner1 == self.bkp2.gene:
+                self.fusionPartner2, self.fusionPartner1 = self.bkp1, self.bkp2
             else:
                 raise FusionGeneConflict()
 
             # Is fusion known?
-            if self.__fusionGene in oncoKb:
-                self.__isKnownFusion = True
+            if self.fusionGene in oncoKb:
+                self.isKnownFusion = True
             else:
-                self.__isKnownFusion = False
+                self.isKnownFusion = False
         else:
-            self.__fusionGene = None
-            self.__isFusion = False
-            self.__isKnownFusion = False
+            self.fusionGene = None
+            self.isFusion = False
+            self.isKnownFusion = False
 
         # Annotation variables
-        if self.__svtype == "TRANSLOCATION":
+        if self.svtype == "TRANSLOCATION":
             if self.bkp1.chrom.isdigit() and self.bkp2.chrom.isdigit():
                 if int(self.bkp1.chrom) < int(self.bkp1.chrom):
-                    self.__annotationPartner1, self.__annotationPartner2 = self.bkp1, self.bkp2
+                    self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
                 else:
-                    self.__annotationPartner1, self.__annotationPartner2 = self.bkp2, self.bkp1
+                    self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
             elif str(self.bkp1.chrom) == "X":
-                self.__annotationPartner1, self.__annotationPartner2 = self.bkp1, self.bkp2
+                self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
             elif str(self.bkp2.chrom) == "X":
-                self.__annotationPartner1, self.__annotationPartner2 = self.bkp2, self.bkp1
+                self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
             elif str(self.bkp1.chrom) == "Y":
-                self.__annotationPartner1, self.__annotationPartner2 = self.bkp1, self.bkp2
+                self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
             else:
-                self.__annotationPartner1, self.__annotationPartner2 = self.bkp2, self.bkp1
-        elif self.__isFusion is True:
-            self.__annotationPartner1, self.__annotationPartner2 = self.__fusionPartner1, self.__fusionPartner2
+                self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
+        elif self.isFusion and self.bkp1.isPanel and self.bkp2.isPanel:
+            self.annotationPartner1, self.annotationPartner2 = self.fusionPartner1, self.fusionPartner2
         else:
-            self.__annotationPartner1, self.__annotationPartner2 = self.bkp1, self.bkp2
+            self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
 
 
 class Error(Exception):
@@ -120,7 +142,7 @@ class MissingCytoBand(Error):
 
     def __init__(self, bkp):
         Exception.__init__(self, "No cytobands identified for the breakpoint: " + bkp
-        )
+                           )
 
 
 class MultipleCytoBand(Error):
@@ -129,7 +151,7 @@ class MultipleCytoBand(Error):
     def __init__(self):
         Exception.__init__(
             self, "Multiple cytobands identified for the breakpoint: " + bkp
-            )
+        )
 
 
 class CanonicalTranscriptNotFound(Error):
@@ -138,7 +160,7 @@ class CanonicalTranscriptNotFound(Error):
     def __init__(self, gene):
         Exception.__init__(
             self, "Cannot find a canonical transcript for the gene: " + gene
-            )
+        )
 
 
 class IncorrectGenesFormat(Error):
@@ -147,7 +169,7 @@ class IncorrectGenesFormat(Error):
     def __init__(self):
         Exception.__init__(
             self, "Input genes are not in required format. Should be in 'Gene1 / Gene2' format."
-            )
+        )
 
 
 class IncorrectBkpFormat(Error):
@@ -155,8 +177,9 @@ class IncorrectBkpFormat(Error):
 
     def __init__(self, bkp):
         Exception.__init__(
-            self, "Format of breakpoint " + str(bkp) + "does not match the required format. Example '7:1234567'"
-            )
+            self, "Format of breakpoint " +
+            str(bkp) + "does not match the required format. Example '7:1234567'"
+        )
 
 
 class IncorrectDescriptionFormat(Error):
@@ -203,3 +226,98 @@ class IncorrectSVInputArguments(Error):
             self, "The number arguments provided for sv class in correct. It should be a \
             comma-separater string of 'svtype, bkp1, bkp2, genes, site1, site2, description, connection'."
         )
+
+
+class BreakPointIntergenic(Error):
+    '''Raised when breakpoint is in an intergenic region'''
+
+    def __init__(self, bkp):
+        Exception.__init__(
+            self, "Breakpoint is is the intergenic region for the breakpont %s:%s." % (
+                bkp.chrom, str(bkp.pos))
+        )
+
+
+class GenomicPosition(Error):
+    '''Raised when breakpoint position cannot be determined in the form of genomic or DNA coordinates'''
+
+    def __init__(self, bkp):
+        Exception.__init__(
+            self, "Genomic position cannot be determined in the form of genomic or DNA for breakpoint %s:%s." % (bkp.chrom, str(bkp.pos))
+        )
+
+
+class BothBreakpointsNoncoding(Error):
+    '''Raised when not even one of the breakpoints is in panel and is in coding region'''
+
+    def __init__(self):
+        Exception.__init__(
+            self, "Atleast one of the breakpoints need to be in target panel and in coding region."
+        )
+
+
+def get_cdna_pos(bkp):
+    dummy_ref = "C"
+    query = make_query(bkp, dummy_ref)
+
+    # get request max twice to VEP for annotation
+    request = make_get_request(query)
+    if not request.ok:
+        #rx = re.compile("\([A|C|G|T]\)")
+        #actual_ref = rx.findall(request.text)
+        s = request.text
+        actual_ref = s[s.find("(")+1:s.find(")")]
+        if actual_ref not in ["A", "C", "G", "T"] or actual_ref == dummy_ref:
+            request.raise_for_status()
+        else:
+            query = make_query(bkp, actual_ref)
+            request = make_get_request(query)
+            if not request.ok:
+                request.raise_for_status()
+    decoded = request.json()
+    result = dict(str(s).split(':', 1) for s in decoded[0]['hgvsc'])
+    cdna = None
+    for tx in bkp.transcript:
+        if tx in result:
+            cdna = result[tx]
+            if not cdna.startswith("c.-") and not cdna.startswith("c.*"):
+                cdna = cdna[:-3]
+                continue
+            else:
+                cdna = "chr" + bkp.chrom + ":g." + str(bkp.pos)
+
+    return tx, cdna
+
+
+def make_get_request(query):
+    server = "http://grch37.rest.ensembl.org"
+    ext = "/variant_recoder/human/" + query
+    try:
+        request = requests.get(
+            server+ext, headers={"Content-Type": "application/json"})
+    except requests.exceptions.RequestException as e:
+        raise e
+    return request
+
+
+def make_query(bkp, dummy_ref):
+    chrom, coord = bkp.chrom, bkp.pos
+    revcomp = {
+        "A": "T",
+        "T": "A",
+        "C": "G",
+        "G": "C",
+        "N": "N"
+    }
+    dummy_alt = revcomp[dummy_ref]
+    query = chrom + ":g." + str(coord) + dummy_ref + ">" + dummy_alt + "?"
+    return query
+
+
+def reformat(svtype):
+    svdict = {
+        "DUPLICATION": "dup",
+        "DELETION": "del",
+        "INVERSION": "inv"
+    }
+    return svdict[svtype]
