@@ -10,21 +10,30 @@ class bkp(object):
             self.gene = str(gene)
             self.desc = str(desc)
         except TypeError:
-            raise Exception(
+            print(
                 "Could not create a new instance of bkp class due to inappropriate values for parameters.")
-        except Exception as e:
-            raise e
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            raise
 
     def expand(self, target_panel, panelKinase, refFlat):
         if self.gene in refFlat:
             self.transcript = refFlat[self.gene]
         else:
             raise CanonicalTranscriptNotFound(self.gene)
+        if "(+)" in self.desc:
+            self.strand = "+"
+        elif "(-)" in self.desc:
+            self.strand = "-"
+        else:
+            raise Exception("Cannot get strand info for breakpoint %s:%s."
+                            % (self.chrom, self.pos))
         try:
             self.transcript, self.cdna = get_cdna_pos(self)
             self.transcript = self.transcript.split(".")[0]
-        except ValueError:
+        except:
             raise GenomicPosition(self)
+
         if self.cdna and self.cdna.startswith("c."):
             self.isCoding = True
         else:
@@ -53,7 +62,7 @@ class sv(object):
             self.chr2, self.pos2 = bkp2.split(":")  # IncorrectBkpFormat
             self.gene1, self.gene2 = genes.split(" / ")  # IncorrectGenesFormat
         except ValueError:
-            raise Exception(
+            print(
                 "Could not create a new instance of sv class due to inappropriate values for parameters.")
 
     def expand(self, target_panel, panelKinase, oncoKb, refFlat):
@@ -67,7 +76,7 @@ class sv(object):
             raise GenesNotInPanel()
 
         if (self.bkp1.isPanel and self.bkp1.isCoding) or \
-        (self.bkp2.isPanel and self.bkp2.isCoding):
+                (self.bkp2.isPanel and self.bkp2.isCoding):
             pass
         else:
             raise BothBreakpointsNoncoding()
@@ -125,6 +134,11 @@ class sv(object):
                 self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
         elif self.isFusion and self.bkp1.isPanel and self.bkp2.isPanel:
             self.annotationPartner1, self.annotationPartner2 = self.fusionPartner1, self.fusionPartner2
+        elif self.isIntragenic:
+            if self.bkp1.strand == "+":
+                self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
+            else:
+                self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
         else:
             self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
 
@@ -240,7 +254,8 @@ class GenomicPosition(Error):
 
     def __init__(self, bkp):
         Exception.__init__(
-            self, "Genomic position cannot be determined in the form of genomic or DNA for breakpoint %s:%s." % (bkp.chrom, str(bkp.pos))
+            self, "Genomic position cannot be determined in the form of genomic or DNA \
+            for breakpoint %s:%s." % (bkp.chrom, str(bkp.pos))
         )
 
 

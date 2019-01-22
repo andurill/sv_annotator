@@ -626,6 +626,7 @@ OncoKb_known_fusions = {
     'EBF1:PDGFRB': 1,
     'EGFR:KDD': 1,
     'EGFR:RAD51': 1,
+	'EGFR:SEPT14': 1,
     'EML4:ALK': 1,
     'EP300:MLL': 1,
     'EP300:MOZ': 1,

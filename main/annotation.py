@@ -44,45 +44,39 @@ def get_other_svs(sv):
     if sv.isFusion and sv.bkp1.isCoding and sv.bkp2.isCoding:
         if sv.isKnownFusion:
             fusion_type = "fusion"
+        gene1, tx1, cdna1 = sv.fusionPartner1.gene, \
+            sv.fusionPartner1.transcript, sv.fusionPartner1.cdna
+        gene2, tx2, cdna2 = sv.fusionPartner2.gene, \
+            sv.fusionPartner2.transcript, sv.fusionPartner2.cdna
+        return "%s (%s) - %s (%s) %s: %s:%s_%s:%s%s" %\
+            (gene1, tx1, gene2, tx2, fusion_type,
+             cdna1, gene1, cdna2, gene2, svtype)
+    elif sv.bkp1.isPanel and sv.bkp2.isPanel and sv.bkp1.isCoding and sv.bkp2.isCoding:
         gene1, tx1, cdna1 = sv.annotationPartner1.gene, \
             sv.annotationPartner1.transcript, sv.annotationPartner1.cdna
         gene2, tx2, cdna2 = sv.annotationPartner2.gene, \
             sv.annotationPartner2.transcript, sv.annotationPartner2.cdna
-        Annotation = "%s (%s) - %s (%s) %s: %s:%s_%s:%s%s" %\
-            (gene1, tx1, gene2, tx2, fusion_type,
-             cdna1, gene1, cdna2, gene2, svtype)
-        print Annotation
-        return Annotation
-    elif sv.bkp1.isPanel and sv.bkp2.isPanel and sv.bkp1.isCoding and sv.bkp2.isCoding:
-        gene1, tx1, cdna1 = sv.bkp1.gene, sv.bkp1.transcript, sv.bkp1.cdna
-        gene2, tx2, cdna2 = sv.bkp2.gene, sv.bkp2.transcript, sv.bkp2.cdna
         if sv.isIntragenic:
-            Annotation = "%s (%s) %s: %s_%s:%s" %\
+            return "%s (%s) %s: %s_%s:%s" %\
                 (gene1, tx1, fusion_type, cdna1, cdna2, svtype)
         else:
-            Annotation = "%s (%s) - %s (%s) %s: %s:%s_%s:%s%s" %\
+            return "%s (%s) - %s (%s) %s: %s:%s_%s:%s%s" %\
                 (gene1, tx1, gene2, tx2, fusion_type,
                  cdna1, gene1, cdna2, gene2, svtype)
-            print Annotation
-            return Annotation
     elif sv.bkp1.isPanel and sv.bkp1.isCoding:
         gene1, tx1, cdna1 = sv.bkp1.gene, sv.bkp1.transcript, sv.bkp1.cdna
         if not cdna1.startswith("chr"):
             cdna2 = "chr" + sv.bkp2.chrom + ":g." + str(sv.bkp2.pos)
-            Annotation = "%s (%s) %s: %s:%s_%s%s" %\
+            return "%s (%s) %s: %s:%s_%s%s" %\
                 (gene1, tx1, fusion_type, cdna1, gene1, cdna2, svtype)
-            print Annotation
-            return Annotation
         else:
             raise BreakPointIntergenic(sv.bkp1)
     else:
         gene2, tx2, cdna2 = sv.bkp2.gene, sv.bkp2.transcript, sv.bkp2.cdna
         if not cdna2.startswith("chr"):
             cdna1 = "chr" + sv.bkp1.chrom + ":g." + str(sv.bkp1.pos)
-            Annotation = "%s (%s) %s: %s:%s_%s%s" %\
+            return "%s (%s) %s: %s:%s_%s%s" %\
                 (gene2, tx2, fusion_type, cdna2, gene2, cdna1, svtype)
-            print Annotation
-            return Annotation
         else:
             raise BreakPointIntergenic(sv.bkp2)
     return
