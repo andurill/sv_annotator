@@ -1,0 +1,82 @@
+cd ~/WDIR
+alias igv="/Applications/IGV_2.3.92/igv.sh"
+alias c='clear'
+alias ll="ls -lh"
+alias lh="ls -lah"
+alias lo='ls -larth -G'
+alias sp2="ssh jayakumg@phoenix-h2.mskcc.org"
+alias sp="ssh jayakumg@phoenix-h1.mskcc.org"
+alias sn="ssh jayakumg@norma.mskcc.org"
+alias sv="ssh jayakumg@virgo1.mskcc.org"
+alias luna="ssh jayakumg@luna.cbio.mskcc.org"
+alias lilac="ssh jayakumg@lilac.mskcc.org"
+alias hal="ssh jayakumg@hal.cbio.mskcc.org"
+alias draco="ssh jayakumg@draco2.mskcc.org"
+alias pl="ssh jayakumg@p30.mskcc.org"
+#alias vim='vim +"set number"'
+#alias less='less -N -R'
+alias ipad="/sbin/ifconfig -a"
+test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
+
+#export PATH="/Users/jayakumg/software/system/python/VERSIONS/python-2.7.13/bin:$PATH"
+export PATH="/usr/local/opt/openssl/bin:$PATH"
+export PATH=/Users/jayakumg/software/system/miniconda2/bin:$PATH
+export PATH="/Users/jayakumg/software/system/htop/VERSIONS/htop-2.2.0/bin:$PATH"
+export PATH="/usr/local/Cellar/neovim/0.3.4/bin:$PATH"
+# added by Anaconda2 4.4.0 installer
+# export PATH="/Users/jayakumg/software/system/anaconda2/bin:$PATH"
+
+# added by Anaconda2 4.4.0 installer
+# export PATH="/Applications/anaconda/bin:$PATH"
+
+# fasd
+export PATH="/Users/jayakumg/software/tools/fasd:$PATH"
+# eval "$(fasd --init auto)" # this method will slightly increase your shell start-up time, since calling binaries has overhead
+alias fv='fasd -fe vim'
+alias fn='fasd -fe nvim'
+alias fl='fasd -fe less'
+alias fc='fasd -fe cat'
+
+# LESS
+export LESS='-R -N -+X'
+
+###functions###
+
+configJ() {
+#a simple function to change symlinks to local machine or server jypter notebook config file
+    echo "configJ ${1}";
+    if [ "X$1" = "X" ]; then
+        echo "Error. Run $ 'configJ dmp' or 'configJ local'"
+    elif [ $1 = "local" ]; then
+        if [ -e /Users/jayakumg/.jupyter/jupyter_notebook_config.py ]; then
+            unlink /Users/jayakumg/.jupyter/jupyter_notebook_config.py 2>/dev/null
+        fi
+        ln -s /Users/jayakumg/.jupyter/jupyter_notebook_config.local.py /Users/jayakumg/.jupyter/jupyter_notebook_config.py
+    elif [ $1 = "dmp" ]; then
+        if [ -e /Users/jayakumg/.jupyter/jupyter_notebook_config.py ]; then
+            unlink /Users/jayakumg/.jupyter/jupyter_notebook_config.py 2>/dev/null
+        fi
+        ln -s /Users/jayakumg/.jupyter/jupyter_notebook_config.dmp.py /Users/jayakumg/.jupyter/jupyter_notebook_config.py
+    else
+        echo "Error. Run $ 'configJ dmp' or 'configJ local'"
+    fi
+}
+
+function jptt() {
+# Forwards port $1 into port $2  and listens to it
+# -N suppresses the execution of a remote command. Pretty much used in port forwarding.
+# -f this requests the ssh command to go to background before execution.
+# -L this argument requires an input in the form of local_socket:remote_socket. Here, we’re specifying our port as YYYY which will be binded to the port XXXX from your remote connection.
+    ssh -N -f -L localhost:${1}:localhost:${2} jayakumg@phoenix-h1.mskcc.org
+}
+
+function jpj() {
+# get job id of jptt
+    ps aux | grep 'ssh -N -f -L localhost:.*:localhost:.* jayakumg@.*.mskcc.org'
+}
+
+function rstudio() {
+    export RSTUDIO_WHICH_R=`which R`
+    export R_LIBS=""
+    /Applications/RStudio.app/Contents/MacOS/RStudio &
+}

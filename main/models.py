@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 import os, sys, requests
-
+import warnings
 
 class bkp(object):
     def __init__(self, chrom, pos, gene, desc):
@@ -19,7 +19,9 @@ class bkp(object):
         if self.gene in refFlat:
             self.transcript = refFlat[self.gene]
         else:
-            raise CanonicalTranscriptNotFound(self.gene)
+            warnings.warn("Cannot find canonical transcript for " +\
+                    str(self.gene), Warning)
+            #raise CanonicalTranscriptNotFound(self.gene)
         try:
             self.transcript, self.cdna = get_cdna_pos(self)
             self.transcript = self.transcript.split(".")[0]
@@ -272,14 +274,19 @@ def get_cdna_pos(bkp):
             if not request.ok:
                 request.raise_for_status()
     decoded = request.json()
-    result = dict(str(s).split(':', 1) for s in decoded[0]['hgvsc'])
+    try:
+        result = dict(str(s).split(':', 1) for s in decoded[0]['hgvsc'])
+    except KeyError:
+        result = {}
+        warnings.warn("Cannot find any cDNA annotations for transcript", Warning)
+        #raise Exception("Cannot find any cDNA annotations for transcript")
     cdna = None
     for tx in bkp.transcript:
         if tx in result:
             cdna = result[tx]
             if not cdna.startswith("c.-") and not cdna.startswith("c.*"):
                 cdna = cdna[:-3]
-                continue
+                break
             else:
                 cdna = "chr" + bkp.chrom + ":g." + str(bkp.pos)
 
