@@ -20,6 +20,8 @@ panelKinase = IMPACTv6_kinase_targets
 oncoKb = OncoKb_known_fusions
 refFlat = refFlat_canonical
 cb_df = cb_df
+tumorsuppressor = IMPACT_TumourSuppressors
+hotspot = IMPACT_KinaseHotspots
 
 
 def annotate_SV(raw):
