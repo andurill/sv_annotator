@@ -1,5 +1,6 @@
 import os, sys
 from constants import cb_df
+from models import BreakPointIntergenic
 
 
 def get_variant_annotation(sv):

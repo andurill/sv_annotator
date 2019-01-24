@@ -16,7 +16,7 @@ class bkp(object):
             print("Unexpected error:", sys.exc_info()[0])
             raise
 
-    def expand(self, target_panel, panelKinase, refFlat):
+    def expand(self, refFlat, target_panel, panelKinase, hotspot, tumoursuppressor):
         if self.gene in refFlat:
             self.transcript = refFlat[self.gene]
         else:
@@ -44,6 +44,16 @@ class bkp(object):
         else:
             self.isPanel = False
 
+        if self.gene in tumoursuppressor:
+            self.isTumourSuppressor = True
+        else:
+            self.isTumourSuppressor = False
+        
+        if self.gene in hotspot:
+            self.isHotspot = True
+        else:
+            self.isHotspot = False
+
         if self.gene in panelKinase:
             self.isKinase = True
         else:
@@ -65,11 +75,13 @@ class sv(object):
             print(
                 "Could not create a new instance of sv class due to inappropriate values for parameters.")
 
-    def expand(self, target_panel, panelKinase, oncoKb, refFlat):
+    def expand(self, refFlat, target_panel, panelKinase, hotspot, tumourSuppressor, oncoKb):
         self.bkp1 = bkp(self.chr1, self.pos1, self.gene1, self.site1)
         self.bkp2 = bkp(self.chr2, self.pos2, self.gene2, self.site2)
-        self.bkp1.expand(target_panel, panelKinase, refFlat)
-        self.bkp2.expand(target_panel, panelKinase, refFlat)
+        self.bkp1.expand(refFlat, target_panel, panelKinase,
+                         hotspot, tumourSuppressor)
+        self.bkp2.expand(refFlat, target_panel, panelKinase,
+                         hotspot, tumourSuppressor)
 
         # Define key variables
         if self.bkp1.isPanel is False and self.bkp2.isPanel is False:

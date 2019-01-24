@@ -584,6 +584,28 @@ IMPACTv6_kinase_targets = {
 'ARAF' : 1
 }
 
+
+#Created: 28-Oct-2018
+IMPACT_TumourSuppressors = {
+	'TP53' : 1
+}
+
+
+#Created: 28-Oct-2018
+IMPACT_KinaseHotspots = {
+	'NTRK1' : 1,
+	'NTRK2' : 1,
+	'NTRK3' : 1,
+	'ALK' : 1,
+	'FGFR1' : 1,
+	'FGFR2' : 1,
+	'FGFR3' : 1,
+	'ROS1' : 1,
+	'RET' : 1,
+	'EGFR' : 1
+}
+
+
 #Created: 28-Oct-2018
 #Cosmic_known_fusions = {
 #
