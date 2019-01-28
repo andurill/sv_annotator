@@ -12,6 +12,14 @@ from main.models import *
 from main.annotation import *
 
 
+__author__ = "Gowtham J"
+__license__ = "GPL"
+__version__ = "1.0.0"
+__maintainer__ = "Gowtham J"
+__email__ = "jayakumg@mskcc.org"
+__status__ = "Development"
+
+
 # Global Variables from constants
 target_panel = IMPACTv6_targets
 panelKinase = IMPACTv6_kinase_targets

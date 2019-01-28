@@ -1,10 +1,11 @@
+#!/usr/bin/env python2
 import os, sys
 from constants import cb_df
 
 
 def get_variant_annotation(sv):
     """
-    call annotation function based on the
+    Gall annotation function based on the
     the type of SV in the sv object
     sv -> func(sv)
     """
@@ -16,7 +17,7 @@ def get_variant_annotation(sv):
 
 def get_translocation(sv):
     """
-    get annotation and coordinate for translocations based on 
+    Get annotation and coordinate for translocations based on 
     the panel and coding characterisitcs of the two breakpoints
     in the given sv object
     sv -> str
@@ -31,14 +32,14 @@ def get_translocation(sv):
              sv.fusionPartner2.gene, sv.fusionPartner2.transcript, fusion_type)
     elif sv.bkp1.isPanel and sv.bkp2.isPanel and sv.bkp1.isCoding and sv.bkp2.isCoding:
         Annotation = "%s (%s) - %s (%s) %s: " %\
-            (sv.annotationPartner1.gene, sv.annotationPartner1.transcript,
-             sv.annotationPartner2.gene, sv.annotationPartner2.transcript, fusion_type)
+            (sv.bkp1.gene, sv.bkp1.transcript,
+             sv.bkp2.gene, sv.bkp2.transcript, fusion_type)
     elif sv.bkp1.isPanel and sv.bkp1.isCoding:
         Annotation = "%s (%s) %s: " %\
-            (sv.annotationPartner1.gene, sv.annotationPartner1.transcript, fusion_type)
+            (sv.bkp1.gene, sv.bkp1.transcript, fusion_type)
     else:
         Annotation = "%s (%s) %s: " %\
-            (sv.annotationPartner2.gene, sv.annotationPartner2.transcript, fusion_type)
+            (sv.bkp2.gene, sv.bkp2.transcript, fusion_type)
 
     cband1 = get_cytoband(sv.annotationPartner1)
     cband2 = get_cytoband(sv.annotationPartner2)
@@ -51,7 +52,7 @@ def get_translocation(sv):
 
 def get_other_svs(sv):
     """
-    get annotation and coordinate for sv based on the panel
+    Get annotation and coordinate for sv based on the panel
     and coding characterisitcs of the two breakpoints in the
     given sv object
     sv -> str
@@ -73,7 +74,7 @@ def get_other_svs(sv):
         gene1, tx1, cdna1 = sv.bkp1.gene, sv.bkp1.transcript, sv.bkp1.cdna
         gene2, tx2, cdna2 = sv.bkp2.gene, sv.bkp2.transcript, sv.bkp2.cdna
         if sv.isIntragenic:
-            Annotation = "%s (%s) %s: %s_%s:%s" %\
+            Annotation = "%s (%s) %s: %s_%s%s" %\
                 (gene1, tx1, fusion_type, cdna1, cdna2, svtype)
             return Annotation
         else:
@@ -89,7 +90,7 @@ def get_other_svs(sv):
         return Annotation
     else:
         gene2, tx2, cdna2 = sv.bkp2.gene, sv.bkp2.transcript, sv.bkp2.cdna
-        cdna1 = sv.bkp2.cdna
+        cdna1 = sv.bkp1.cdna
         Annotation = "%s (%s) %s: %s:%s_%s%s" %\
                 (gene2, tx2, fusion_type, cdna2, gene2, cdna1, svtype)
         return Annotation
@@ -97,7 +98,7 @@ def get_other_svs(sv):
 
 def get_cytoband(bkp):
     """
-    get cytoband of a breakpoint by querying panda dataframe
+    Get cytoband of a breakpoint by querying panda dataframe
     bkp -> str
     """
     chrom, coord = bkp.chrom, bkp.pos
@@ -114,7 +115,7 @@ def get_cytoband(bkp):
 
 def reformat(svtype):
     """
-    reformat SV type for annotation
+    Reformat SV type for annotation
     str -> str
     """
 
@@ -124,3 +125,25 @@ def reformat(svtype):
         "INVERSION": "inv"
     }
     return svdict[svtype]
+
+
+class Error(Exception):
+    '''Base class for other exceptions'''
+    pass
+
+
+class MissingCytoBand(Error):
+    '''Raised when no cytoband was identified for a breakpoint'''
+
+    def __init__(self, bkp):
+        Exception.__init__(self, "No cytobands identified for the breakpoint: " + bkp
+                           )
+
+
+class MultipleCytoBand(Error):
+    '''Raised when multiple cytoband were identified for a breakpoint'''
+
+    def __init__(self):
+        Exception.__init__(
+            self, "Multiple cytobands identified for the breakpoint: " + bkp
+        )

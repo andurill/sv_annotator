@@ -9,7 +9,6 @@ class bkp(object):
     """
     Class to represent a breakpoint and other related attributes and features.
     """
-    message = ""
     def __init__(self, chrom, pos, gene, desc):
         try:
             self.chrom = str(chrom)
@@ -22,19 +21,21 @@ class bkp(object):
         except Exception as e:
             raise e
 
-    def expand(self, target_panel, panelKinase, refFlat, message):
+    def expand(self, target_panel, panelKinase, refFlat):
         try:
             self.transcript = refFlat[self.gene]
         except KeyError:
             self.transcript = []
             e = "Cannot find canonical transcript for " +\
                 str(self.gene)
-            message = message + e + ";"
+            #message = message + e + ";
+            warnings.warn(e, Warning)
         try:
             self.transcript, self.cdna = get_cdna_pos(self)
             self.transcript = self.transcript.split(".")[0]
         except Exception as e:
-            message = message + e + ";"
+            #message = message + e + ";"
+            warnings.warn(e, Warning)
         if self.cdna and self.cdna.startswith("c."):
             self.isCoding = True
         else:
@@ -99,8 +100,7 @@ class sv(object):
             self.fusionGene = s[s.find("{")+1:s.find("}")]
             # check if fusion is defined in the correct format Gene1:Gene2
             try:
-                self.fusionPartner1, self.fusionPartner2 = self.fusionGene.split(
-                    ":")
+                self.fusionPartner1, self.fusionPartner2 = self.fusionGene.split(":")
             except ValueError:
                 raise IncorrectDescriptionFormat()
 
@@ -268,18 +268,15 @@ class BothBreakpointsNoncoding(Error):
         )
 
 
-class Booo(Error):
-    '''Raised when not even one of the breakpoints is in panel and is in coding region'''
-
-    def __init__(self):
-        Exception.__init__(
-            self, "BOOOOO!"
-        )
-
-
 def get_cdna_pos(bkp):
+    """
+    Get cdna position for a bkp object by querying
+    vep server
+    bkp -> tuple
+    """
     dummy_ref = "C"
     query = make_query(bkp, dummy_ref)
+    cdna, tx = [""]*2
 
     # get request max twice to VEP for annotation
     request = make_get_request(query)
@@ -301,36 +298,48 @@ def get_cdna_pos(bkp):
         result = dict(str(s).split(':', 1) for s in decoded[0]['hgvsc'])
     except KeyError:
         result = {}
-        raise Exception(
-            "Cannot find any cDNA annotations for gene " + bkp.gene)
-    cdna = None
+        #raise Exception(
+        #    "Cannot find any cDNA annotations for gene " + bkp.gene)
+        warnings.warn("Cannot find any cDNA annotations for gene " +\
+         bkp.gene, Warning)
     if bkp.transcript:
         for tx in bkp.transcript:
             if tx in result:
                 cdna = result[tx]
-                if not cdna.startswith("c.-") and not \
+                if cdna.startswith("c.-") or \
                         cdna.startswith("c.*"):
+                    cdna = ""
+                else:
                     cdna = cdna[:-3]
                     break
-    else:
-        bkp.transcript = ""
-    if cdna is None:
+    if cdna == "":
         cdna = "chr" + bkp.chrom + ":g." + str(bkp.pos)
     return tx, cdna
 
 
 def make_get_request(query):
+    """
+    Generate query string in the format required by vep
+    str -> request
+    """
     server = "http://grch37.rest.ensembl.org"
     ext = "/variant_recoder/human/" + query
     try:
         request = requests.get(
             server+ext, headers={"Content-Type": "application/json"})
     except requests.exceptions.RequestException as e:
-        raise e
+        #raise e
+        warnings.warn("Error in querying vep for " + str(query) + \
+        "Error: " + str(e))
     return request
 
 
 def make_query(bkp, dummy_ref):
+    """
+    Make dummy query string for the second
+    request sent to vep server
+    bkp, str -> str
+    """
     chrom, coord = bkp.chrom, bkp.pos
     revcomp = {
         "A": "T",
