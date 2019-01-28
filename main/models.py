@@ -1,8 +1,15 @@
 #!/usr/bin/env python2
-import os, sys, requests
+import os
+import sys
+import requests
 import warnings
 
+
 class bkp(object):
+    """
+    Class to represent a breakpoint and other related attributes and features.
+    """
+    message = ""
     def __init__(self, chrom, pos, gene, desc):
         try:
             self.chrom = str(chrom)
@@ -15,18 +22,19 @@ class bkp(object):
         except Exception as e:
             raise e
 
-    def expand(self, target_panel, panelKinase, refFlat):
-        if self.gene in refFlat:
+    def expand(self, target_panel, panelKinase, refFlat, message):
+        try:
             self.transcript = refFlat[self.gene]
-        else:
-            warnings.warn("Cannot find canonical transcript for " +\
-                    str(self.gene), Warning)
-            #raise CanonicalTranscriptNotFound(self.gene)
+        except KeyError:
+            self.transcript = []
+            e = "Cannot find canonical transcript for " +\
+                str(self.gene)
+            message = message + e + ";"
         try:
             self.transcript, self.cdna = get_cdna_pos(self)
             self.transcript = self.transcript.split(".")[0]
-        except ValueError:
-            raise GenomicPosition(self)
+        except Exception as e:
+            message = message + e + ";"
         if self.cdna and self.cdna.startswith("c."):
             self.isCoding = True
         else:
@@ -44,6 +52,10 @@ class bkp(object):
 
 
 class sv(object):
+    """
+    Class to represent a structural variant and other related attributes and features.
+    """
+    message = ""
     def __init__(self, svtype, bkp1, bkp2, genes, site1, site2, description, connection):
         self.svtype = svtype
         self.site1 = site1
@@ -65,17 +77,17 @@ class sv(object):
         self.bkp2.expand(target_panel, panelKinase, refFlat)
 
         # Define key variables
-        if self.bkp1.isPanel is False and self.bkp2.isPanel is False:
+        if not(self.bkp1.isPanel or self.bkp2.isPanel):
             raise GenesNotInPanel()
 
         if (self.bkp1.isPanel and self.bkp1.isCoding) or \
-        (self.bkp2.isPanel and self.bkp2.isCoding):
+                (self.bkp2.isPanel and self.bkp2.isCoding):
             pass
         else:
             raise BothBreakpointsNoncoding()
-
         # Is SV intragenic?
-        if self.bkp1.gene == self.bkp2.gene and self.bkp1.isCoding and self.bkp2.isCoding:
+        if self.bkp1.gene == self.bkp2.gene and \
+                self.bkp1.isCoding and self.bkp2.isCoding:
             self.isIntragenic = True
         else:
             self.isIntragenic = False
@@ -242,7 +254,8 @@ class GenomicPosition(Error):
 
     def __init__(self, bkp):
         Exception.__init__(
-            self, "Genomic position cannot be determined in the form of genomic or DNA for breakpoint %s:%s." % (bkp.chrom, str(bkp.pos))
+            self, "Genomic position cannot be determined in the form of genomic or DNA for breakpoint %s:%s." % (
+                bkp.chrom, str(bkp.pos))
         )
 
 
@@ -252,6 +265,15 @@ class BothBreakpointsNoncoding(Error):
     def __init__(self):
         Exception.__init__(
             self, "Atleast one of the breakpoints need to be in target panel and in coding region."
+        )
+
+
+class Booo(Error):
+    '''Raised when not even one of the breakpoints is in panel and is in coding region'''
+
+    def __init__(self):
+        Exception.__init__(
+            self, "BOOOOO!"
         )
 
 
@@ -266,7 +288,8 @@ def get_cdna_pos(bkp):
         #actual_ref = rx.findall(request.text)
         s = request.text
         actual_ref = s[s.find("(")+1:s.find(")")]
-        if actual_ref not in ["A", "C", "G", "T"] or actual_ref == dummy_ref:
+        if actual_ref not in ["A", "C", "G", "T"] or \
+                actual_ref == dummy_ref:
             request.raise_for_status()
         else:
             query = make_query(bkp, actual_ref)
@@ -278,18 +301,21 @@ def get_cdna_pos(bkp):
         result = dict(str(s).split(':', 1) for s in decoded[0]['hgvsc'])
     except KeyError:
         result = {}
-        warnings.warn("Cannot find any cDNA annotations for transcript", Warning)
-        #raise Exception("Cannot find any cDNA annotations for transcript")
+        raise Exception(
+            "Cannot find any cDNA annotations for gene " + bkp.gene)
     cdna = None
-    for tx in bkp.transcript:
-        if tx in result:
-            cdna = result[tx]
-            if not cdna.startswith("c.-") and not cdna.startswith("c.*"):
-                cdna = cdna[:-3]
-                break
-            else:
-                cdna = "chr" + bkp.chrom + ":g." + str(bkp.pos)
-
+    if bkp.transcript:
+        for tx in bkp.transcript:
+            if tx in result:
+                cdna = result[tx]
+                if not cdna.startswith("c.-") and not \
+                        cdna.startswith("c.*"):
+                    cdna = cdna[:-3]
+                    break
+    else:
+        bkp.transcript = ""
+    if cdna is None:
+        cdna = "chr" + bkp.chrom + ":g." + str(bkp.pos)
     return tx, cdna
 
 

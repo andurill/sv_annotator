@@ -1,9 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-import os
-import sys
-import requests
+import os, sys, requests
 import pandas as pd
 import numpy as np
 import timeit

@@ -3,6 +3,11 @@ from constants import cb_df
 
 
 def get_variant_annotation(sv):
+    """
+    call annotation function based on the
+    the type of SV in the sv object
+    sv -> func(sv)
+    """
     if sv.svtype == "TRANSLOCATION":
         return get_translocation(sv)
     else:
@@ -10,6 +15,12 @@ def get_variant_annotation(sv):
 
 
 def get_translocation(sv):
+    """
+    get annotation and coordinate for translocations based on 
+    the panel and coding characterisitcs of the two breakpoints
+    in the given sv object
+    sv -> str
+    """
     fusion_type = "rearrangement"
     Annotation = ""
     if sv.isFusion and sv.bkp1.isCoding and sv.bkp2.isCoding:
@@ -39,6 +50,12 @@ def get_translocation(sv):
 
 
 def get_other_svs(sv):
+    """
+    get annotation and coordinate for sv based on the panel
+    and coding characterisitcs of the two breakpoints in the
+    given sv object
+    sv -> str
+    """
     svtype = reformat(sv.svtype)
     fusion_type = "rearrangement"
     if sv.isFusion and sv.bkp1.isCoding and sv.bkp2.isCoding:
@@ -51,7 +68,6 @@ def get_other_svs(sv):
         Annotation = "%s (%s) - %s (%s) %s: %s:%s_%s:%s%s" %\
             (gene1, tx1, gene2, tx2, fusion_type,
              cdna1, gene1, cdna2, gene2, svtype)
-        print Annotation
         return Annotation
     elif sv.bkp1.isPanel and sv.bkp2.isPanel and sv.bkp1.isCoding and sv.bkp2.isCoding:
         gene1, tx1, cdna1 = sv.bkp1.gene, sv.bkp1.transcript, sv.bkp1.cdna
@@ -59,36 +75,31 @@ def get_other_svs(sv):
         if sv.isIntragenic:
             Annotation = "%s (%s) %s: %s_%s:%s" %\
                 (gene1, tx1, fusion_type, cdna1, cdna2, svtype)
+            return Annotation
         else:
             Annotation = "%s (%s) - %s (%s) %s: %s:%s_%s:%s%s" %\
                 (gene1, tx1, gene2, tx2, fusion_type,
                  cdna1, gene1, cdna2, gene2, svtype)
-            print Annotation
             return Annotation
     elif sv.bkp1.isPanel and sv.bkp1.isCoding:
         gene1, tx1, cdna1 = sv.bkp1.gene, sv.bkp1.transcript, sv.bkp1.cdna
-        if not cdna1.startswith("chr"):
-            cdna2 = "chr" + sv.bkp2.chrom + ":g." + str(sv.bkp2.pos)
-            Annotation = "%s (%s) %s: %s:%s_%s%s" %\
+        cdna2 = sv.bkp2.cdna
+        Annotation = "%s (%s) %s: %s:%s_%s%s" %\
                 (gene1, tx1, fusion_type, cdna1, gene1, cdna2, svtype)
-            print Annotation
-            return Annotation
-        else:
-            raise BreakPointIntergenic(sv.bkp1)
+        return Annotation
     else:
         gene2, tx2, cdna2 = sv.bkp2.gene, sv.bkp2.transcript, sv.bkp2.cdna
-        if not cdna2.startswith("chr"):
-            cdna1 = "chr" + sv.bkp1.chrom + ":g." + str(sv.bkp1.pos)
-            Annotation = "%s (%s) %s: %s:%s_%s%s" %\
+        cdna1 = sv.bkp2.cdna
+        Annotation = "%s (%s) %s: %s:%s_%s%s" %\
                 (gene2, tx2, fusion_type, cdna2, gene2, cdna1, svtype)
-            print Annotation
-            return Annotation
-        else:
-            raise BreakPointIntergenic(sv.bkp2)
-    return
+        return Annotation
 
 
 def get_cytoband(bkp):
+    """
+    get cytoband of a breakpoint by querying panda dataframe
+    bkp -> str
+    """
     chrom, coord = bkp.chrom, bkp.pos
     which_cytoband = cb_df[(cb_df['Chr'].values == chrom) &
                            (cb_df['Bp_start'].values <= coord) &
@@ -102,6 +113,11 @@ def get_cytoband(bkp):
 
 
 def reformat(svtype):
+    """
+    reformat SV type for annotation
+    str -> str
+    """
+
     svdict = {
         "DUPLICATION": "dup",
         "DELETION": "del",
