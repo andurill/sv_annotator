@@ -1,8 +1,14 @@
 #!/usr/bin/env python2
-import os, sys, requests
+import os
+import sys
+import requests
+import warnings
 
 
 class bkp(object):
+    """
+    Class to represent a breakpoint and other related attributes and features.
+    """
     def __init__(self, chrom, pos, gene, desc):
         try:
             self.chrom = str(chrom)
@@ -16,24 +22,21 @@ class bkp(object):
             print("Unexpected error:", sys.exc_info()[0])
             raise
 
-    def expand(self, refFlat, target_panel, panelKinase, hotspot, tumoursuppressor):
-        if self.gene in refFlat:
+    def expand(self, target_panel, panelKinase, refFlat):
+        try:
             self.transcript = refFlat[self.gene]
-        else:
-            raise CanonicalTranscriptNotFound(self.gene)
-        if "(+)" in self.desc:
-            self.strand = "+"
-        elif "(-)" in self.desc:
-            self.strand = "-"
-        else:
-            raise Exception("Cannot get strand info for breakpoint %s:%s."
-                            % (self.chrom, self.pos))
+        except KeyError:
+            self.transcript = []
+            e = "Cannot find canonical transcript for " +\
+                str(self.gene)
+            #message = message + e + ";
+            warnings.warn(e, Warning)
         try:
             self.transcript, self.cdna = get_cdna_pos(self)
             self.transcript = self.transcript.split(".")[0]
-        except:
-            raise GenomicPosition(self)
-
+        except Exception as e:
+            #message = message + e + ";"
+            warnings.warn(e, Warning)
         if self.cdna and self.cdna.startswith("c."):
             self.isCoding = True
         else:
@@ -61,6 +64,10 @@ class bkp(object):
 
 
 class sv(object):
+    """
+    Class to represent a structural variant and other related attributes and features.
+    """
+    message = ""
     def __init__(self, svtype, bkp1, bkp2, genes, site1, site2, description, connection):
         self.svtype = svtype
         self.site1 = site1
@@ -84,7 +91,7 @@ class sv(object):
                          hotspot, tumourSuppressor)
 
         # Define key variables
-        if self.bkp1.isPanel is False and self.bkp2.isPanel is False:
+        if not(self.bkp1.isPanel or self.bkp2.isPanel):
             raise GenesNotInPanel()
 
         if (self.bkp1.isPanel and self.bkp1.isCoding) or \
@@ -92,9 +99,9 @@ class sv(object):
             pass
         else:
             raise BothBreakpointsNoncoding()
-
         # Is SV intragenic?
-        if self.bkp1.gene == self.bkp2.gene and self.bkp1.isCoding and self.bkp2.isCoding:
+        if self.bkp1.gene == self.bkp2.gene and \
+                self.bkp1.isCoding and self.bkp2.isCoding:
             self.isIntragenic = True
         else:
             self.isIntragenic = False
@@ -106,8 +113,7 @@ class sv(object):
             self.fusionGene = s[s.find("{")+1:s.find("}")]
             # check if fusion is defined in the correct format Gene1:Gene2
             try:
-                self.fusionPartner1, self.fusionPartner2 = self.fusionGene.split(
-                    ":")
+                self.fusionPartner1, self.fusionPartner2 = self.fusionGene.split(":")
             except ValueError:
                 raise IncorrectDescriptionFormat()
 
@@ -266,8 +272,8 @@ class GenomicPosition(Error):
 
     def __init__(self, bkp):
         Exception.__init__(
-            self, "Genomic position cannot be determined in the form of genomic or DNA \
-            for breakpoint %s:%s." % (bkp.chrom, str(bkp.pos))
+            self, "Genomic position cannot be determined in the form of genomic or DNA for breakpoint %s:%s." % (
+                bkp.chrom, str(bkp.pos))
         )
 
 
@@ -281,8 +287,14 @@ class BothBreakpointsNoncoding(Error):
 
 
 def get_cdna_pos(bkp):
+    """
+    Get cdna position for a bkp object by querying
+    vep server
+    bkp -> tuple
+    """
     dummy_ref = "C"
     query = make_query(bkp, dummy_ref)
+    cdna, tx = [""]*2
 
     # get request max twice to VEP for annotation
     request = make_get_request(query)
@@ -291,7 +303,8 @@ def get_cdna_pos(bkp):
         #actual_ref = rx.findall(request.text)
         s = request.text
         actual_ref = s[s.find("(")+1:s.find(")")]
-        if actual_ref not in ["A", "C", "G", "T"] or actual_ref == dummy_ref:
+        if actual_ref not in ["A", "C", "G", "T"] or \
+                actual_ref == dummy_ref:
             request.raise_for_status()
         else:
             query = make_query(bkp, actual_ref)
@@ -299,32 +312,52 @@ def get_cdna_pos(bkp):
             if not request.ok:
                 request.raise_for_status()
     decoded = request.json()
-    result = dict(str(s).split(':', 1) for s in decoded[0]['hgvsc'])
-    cdna = None
-    for tx in bkp.transcript:
-        if tx in result:
-            cdna = result[tx]
-            if not cdna.startswith("c.-") and not cdna.startswith("c.*"):
-                cdna = cdna[:-3]
-                continue
-            else:
-                cdna = "chr" + bkp.chrom + ":g." + str(bkp.pos)
-
+    try:
+        result = dict(str(s).split(':', 1) for s in decoded[0]['hgvsc'])
+    except KeyError:
+        result = {}
+        #raise Exception(
+        #    "Cannot find any cDNA annotations for gene " + bkp.gene)
+        warnings.warn("Cannot find any cDNA annotations for gene " +\
+         bkp.gene, Warning)
+    if bkp.transcript:
+        for tx in bkp.transcript:
+            if tx in result:
+                cdna = result[tx]
+                if cdna.startswith("c.-") or \
+                        cdna.startswith("c.*"):
+                    cdna = ""
+                else:
+                    cdna = cdna[:-3]
+                    break
+    if cdna == "":
+        cdna = "chr" + bkp.chrom + ":g." + str(bkp.pos)
     return tx, cdna
 
 
 def make_get_request(query):
+    """
+    Generate query string in the format required by vep
+    str -> request
+    """
     server = "http://grch37.rest.ensembl.org"
     ext = "/variant_recoder/human/" + query
     try:
         request = requests.get(
             server+ext, headers={"Content-Type": "application/json"})
     except requests.exceptions.RequestException as e:
-        raise e
+        #raise e
+        warnings.warn("Error in querying vep for " + str(query) + \
+        "Error: " + str(e))
     return request
 
 
 def make_query(bkp, dummy_ref):
+    """
+    Make dummy query string for the second
+    request sent to vep server
+    bkp, str -> str
+    """
     chrom, coord = bkp.chrom, bkp.pos
     revcomp = {
         "A": "T",

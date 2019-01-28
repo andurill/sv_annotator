@@ -1,9 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-import os
-import sys
-import requests
+import os, sys, requests
 import pandas as pd
 import numpy as np
 import timeit
@@ -12,6 +10,14 @@ from main.models import *
 #import main.notes as notes
 #import main.position as pos
 from main.annotation import *
+
+
+__author__ = "Gowtham J"
+__license__ = "GPL"
+__version__ = "1.0.0"
+__maintainer__ = "Gowtham J"
+__email__ = "jayakumg@mskcc.org"
+__status__ = "Development"
 
 
 # Global Variables from constants
