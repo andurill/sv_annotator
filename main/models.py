@@ -137,7 +137,7 @@ class sv(object):
                 self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
             else:
                 self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
-        elif self.isFusion and self.bkp1.isPanel and self.bkp2.isPanel:
+        elif self.isFusion and self.bkp1.isCoding and self.bkp2.isCoding:
             self.annotationPartner1, self.annotationPartner2 = self.fusionPartner1, self.fusionPartner2
         else:
             self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
