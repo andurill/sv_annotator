@@ -45,7 +45,7 @@ def annotate_SV(raw):
         return message, note, annotation, position       
 
     try:
-        variant.expand(target_panel, panelKinase, oncoKb, refFlat)
+        variant.expand(target_panel, panelKinase, oncoKb, refFlat, hotspot, tumorsuppressor)
     except Exception as e:
         message = e
         return message, note, annotation, position
