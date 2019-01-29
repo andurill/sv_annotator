@@ -151,7 +151,7 @@ def get_fusion_misc(sv):
 
 def functional_significance(sv):
     """
-    Determine if functional significace note is neccessary
+    Determine if functional significance note is neccessary
     based on variant type
     sv -> str
     """
