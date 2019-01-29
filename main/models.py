@@ -21,7 +21,7 @@ class bkp(object):
         except Exception as e:
             raise e
 
-    def expand(self, target_panel, panelKinase, refFlat):
+    def expand(self, refFlat, target_panel, panelKinase, hotspot, tumoursuppressor):
         try:
             self.transcript = refFlat[self.gene]
         except KeyError:
@@ -30,12 +30,22 @@ class bkp(object):
                 str(self.gene)
             #message = message + e + ";
             warnings.warn(e, Warning)
+
         try:
             self.transcript, self.cdna = get_cdna_pos(self)
             self.transcript = self.transcript.split(".")[0]
         except Exception as e:
             #message = message + e + ";"
             warnings.warn(e, Warning)
+
+        if "(+)" in self.desc:
+            self.strand = "+"
+        elif "(-)" in self.desc:
+            self.strand = "-"
+        else:
+            raise Exception("Cannot get strand info for breakpoint %s:%s."
+                            % (self.chrom, self.pos))
+
         if self.cdna and self.cdna.startswith("c."):
             self.isCoding = True
         else:
@@ -45,6 +55,16 @@ class bkp(object):
             self.isPanel = True
         else:
             self.isPanel = False
+
+        if self.gene in tumoursuppressor:
+            self.isTumourSuppressor = True
+        else:
+            self.isTumourSuppressor = False
+
+        if self.gene in hotspot:
+            self.isHotspot = True
+        else:
+            self.isHotspot = False
 
         if self.gene in panelKinase:
             self.isKinase = True
@@ -139,6 +159,11 @@ class sv(object):
                 self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
         elif self.isFusion and self.bkp1.isCoding and self.bkp2.isCoding:
             self.annotationPartner1, self.annotationPartner2 = self.fusionPartner1, self.fusionPartner2
+        elif self.isIntragenic:
+            if self.bkp1.strand == "+":
+                self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
+            else:
+                self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
         else:
             self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
 
