@@ -7,9 +7,10 @@ import numpy as np
 from notes_constants import *
 
 
-refFlat_summary = pd.read_csv("./data/refFlat_summary.txt", sep="\t", dtype={
-                              'a': str, 'b': str, 'c': str, 'd': str,
-                              'e': int, 'f': int, 'g': int})
+refFlat_summary = pd.read_csv(
+    "./data/refFlat_summary.txt", sep="\t", 
+        dtype={'a': str, 'b': str, 'c': str, 
+        'd': str, 'e': int, 'f': int, 'g': int})
 
 
 def get_bkp_info(bkp):
@@ -108,10 +109,41 @@ def get_exons_involved(sv):
     return
 
 
+def getOverlap(a, b):
+    return max(0, min(a[1], b[1]) - max(a[0], b[0]))
+
+def get_kinase_annotation(bkp, kinase_annotation):
+    kinase_interval = []
+    try:
+        interval = (bkp.variantSite1, bkp.variantSite2)
+        kinase_interval = kinase_annotation[
+            (kinase_annotation['HUGO'].values == bkp.gene)].\
+            iloc[0, [1, 4]].values.tolist()
+    except IndexError:
+            # no values found
+    except NameError:
+            # not fusion
+    except ValueError:
+            # what
+    if kinase_interval:
+        overlap = getOverlap(interal, kinase_interval)
+        if overlap == 0:
+            return "does not include the kinase domain of %s" % (bkp.gene)
+        else:
+            if min(interval) <= min(kinase_interval) and \
+                max(interval) >= max(kinase_interval):
+                return "includes the kinase domain of %s" % (bkp.gene)
+            else:
+                return "includes a part of the kinase domain of %s" % (bkp.gene)
+    return None
+        
+
 def get_note(sv):
     note = None
     return note
 
+
+#" and ".join(filter(lambda x: isinstance(x, str), [a, b, c]))
 
 def get_prefix(sv):
     """
@@ -138,15 +170,29 @@ def get_prefix(sv):
     return prefix
 
 
-def get_fusion_misc(sv):
+def get_misc_notes(sv):
     """
     get frame and kinase domain information for
     fusion variants only
     sv -> str
     """
-    for bkp in (sv.bkp1, sv.bkp2):
-        if bkp.isKinase:
-            return
+    misc_note = ""
+    if "in frame" in sv.desc:
+        frame_note = "is predicted to be in frame"
+    else:
+        frame_note = None
+    kinase1, kinase2 = \
+    map(lambda x: get_kinase_annotation(x, kinase_annotation), \
+        (sv.fusionPartner1, sv.fusionPartner2))
+    if kinase1 and kinase2:
+        map(lambda x: kinase2.replace(x, ""),
+            ("does not include the ", "includes "))
+    misc_note = "and ".join(filter(lambda x: isinstance(x, str),\ 
+        [frame_note, kinase1, kinase2]))
+    if misc_note:
+        return " This fusion %s." % misc_note
+    else:
+        return ""
 
 
 def functional_significance(sv):
@@ -165,3 +211,17 @@ def functional_significance(sv):
         return ""
     else:
         return " The functional significance is undetermined."
+
+
+def special_cases(sv):
+    if sv.isIntragenic:
+        if sv.bkp1.gene == "EGFR":
+            re
+
+
+special_case_notes = {
+    "KDD" : "Note: The EGFR rearrangement is a kinase domain duplication (KDD).",
+    "vIII" : "Note: The EGFR rearrangement is a vIII variant.",
+    "CTD" : "Note: The EGFR rearrangement is a CTD variant.",
+    "ERG" : "The fusion involves ERG non-canonical transcript (NM_00449)."
+}

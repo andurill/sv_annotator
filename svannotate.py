@@ -52,6 +52,7 @@ def annotate_SV(raw):
 
     try:
         annotation = get_variant_annotation(variant)
+        sv.annotation = annotation
     except Exception as e:
         message = e
         return message, note, annotation, position
