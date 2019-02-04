@@ -1,5 +1,0 @@
-name: mutalyzer-virenv
-dependencies:
-        - pip
-        - soappy==0.12.22
-        - pandas
