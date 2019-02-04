@@ -10,6 +10,7 @@ from main.models import *
 #import main.notes as notes
 #import main.position as pos
 from main.annotation import *
+from main.notes import *
 
 
 __author__ = "Gowtham J"
@@ -24,10 +25,10 @@ __status__ = "Development"
 target_panel = IMPACTv6_targets
 panelKinase = IMPACTv6_kinase_targets
 oncoKb = OncoKb_known_fusions
-refFlat = refFlat_canonical
 cb_df = cb_df
-tumorsuppressor = IMPACT_TumourSuppressors
-hotspot = IMPACT_KinaseHotspots
+refFlat = refFlat_canonical
+tumourSuppressor = IMPACT_TumourSuppressors
+hotspot = IMPACT_Hotspots
 
 
 def annotate_SV(raw):
@@ -45,14 +46,22 @@ def annotate_SV(raw):
         return message, note, annotation, position       
 
     try:
-        variant.expand(target_panel, panelKinase, oncoKb, refFlat, hotspot, tumorsuppressor)
+        variant.expand(refFlat, target_panel, panelKinase,
+                       hotspot, tumourSuppressor, oncoKb)
     except Exception as e:
+        #raise
         message = e
         return message, note, annotation, position
 
     try:
         annotation = get_variant_annotation(variant)
         sv.annotation = annotation
+    except Exception as e:
+        message = e
+        return message, note, annotation, position
+
+    try:
+        note = get_notes(variant, refFlat_summary, kinase_annotation)
     except Exception as e:
         message = e
         return message, note, annotation, position

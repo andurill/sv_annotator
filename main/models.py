@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 import os, sys, requests, warnings
-
+import pandas as pd
 
 class bkp(object):
     """
@@ -19,21 +19,22 @@ class bkp(object):
             print("Unexpected error:", sys.exc_info()[0])
             raise
 
-    def expand(self, refFlat, target_panel, panelKinase, hotspot, tumoursuppressor):
+    def expand(self, refFlat, target_panel, panelKinase, hotspot, tumourSuppressor):
         try:
-            self.transcript = refFlat[self.gene]
-        except KeyError:
+            self.transcript = refFlat[refFlat['Gene'] == self.gene]\
+                ['Transcripts'].str.split(",").tolist().pop()
+        except IndexError:
             self.transcript = []
             e = "Cannot find canonical transcript for " +\
                 str(self.gene)
-            #message = message + e + ";
+            message = message + e + ";"
             warnings.warn(e, Warning)
 
         try:
             self.transcript, self.cdna = get_cdna_pos(self)
             self.transcript = self.transcript.split(".")[0]
         except Exception as e:
-            #message = message + e + ";"
+            message = message + e + ";"
             warnings.warn(e, Warning)
         
         if "(+)" in self.desc:
@@ -54,7 +55,7 @@ class bkp(object):
         else:
             self.isPanel = False
 
-        if self.gene in tumoursuppressor:
+        if self.gene in tumourSuppressor:
             self.isTumourSuppressor = True
         else:
             self.isTumourSuppressor = False
@@ -92,10 +93,8 @@ class sv(object):
     def expand(self, refFlat, target_panel, panelKinase, hotspot, tumourSuppressor, oncoKb):
         self.bkp1 = bkp(self.chr1, self.pos1, self.gene1, self.site1)
         self.bkp2 = bkp(self.chr2, self.pos2, self.gene2, self.site2)
-        self.bkp1.expand(refFlat, target_panel, panelKinase,
-                         hotspot, tumourSuppressor)
-        self.bkp2.expand(refFlat, target_panel, panelKinase,
-                         hotspot, tumourSuppressor)
+        self.bkp1.expand(refFlat, target_panel, panelKinase, hotspot, tumourSuppressor)
+        self.bkp2.expand(refFlat, target_panel, panelKinase, hotspot, tumourSuppressor)
 
         # Define key variables
         if not(self.bkp1.isPanel or self.bkp2.isPanel):

@@ -75,13 +75,6 @@ def get_other_svs(sv):
             sv.annotationPartner1.transcript, sv.annotationPartner1.cdna
         gene2, tx2, cdna2 = sv.annotationPartner2.gene, \
             sv.annotationPartner2.transcript, sv.annotationPartner2.cdna
-        Annotation = "%s (%s) - %s (%s) %s: %s:%s_%s:%s%s" %\
-            (gene1, tx1, gene2, tx2, fusion_type,
-             cdna1, gene1, cdna2, gene2, svtype)
-        return Annotation
-    elif sv.bkp1.isPanel and sv.bkp2.isPanel and sv.bkp1.isCoding and sv.bkp2.isCoding:
-        gene1, tx1, cdna1 = sv.bkp1.gene, sv.bkp1.transcript, sv.bkp1.cdna
-        gene2, tx2, cdna2 = sv.bkp2.gene, sv.bkp2.transcript, sv.bkp2.cdna
         if sv.isIntragenic:
             Annotation = "%s (%s) %s: %s_%s%s" %\
                 (gene1, tx1, fusion_type, cdna1, cdna2, svtype)
