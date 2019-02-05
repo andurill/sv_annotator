@@ -19,8 +19,8 @@ def get_bkp_info(bkp, refFlat_summary, shift=0):
             .to_dict('records').pop()
     except IndexError:
         raise Exception(
-            "Exon and Intron information not found for %s in refFlat_summary."\
-                % (bkp.gene))
+            "Exon and Intron information not found for %s in refFlat_summary."
+            % (bkp.gene))
     bkp.firstexon = bkp_dict['first_exon']
     bkp.lastexon = bkp_dict['last_exon']
     if bkp_dict['Strand'] == "+":
@@ -50,23 +50,38 @@ def get_bkp_info(bkp, refFlat_summary, shift=0):
         bkp.site = "intron " + str(bkp.intron)
     else:
         bkp.site = "exon " + str(bkp.exon)
-    return
 
 
 def get_exon_order(bkp, order):
     if (bkp.strand == "+" and order == 1) or \
-        (bkp.strand == "-" and order == 2):
-        order = (bkp.exon, bkp.lastexon)
+            (bkp.strand == "-" and order == 2):
+        ordert = (bkp.exon, bkp.lastexon)
     elif (bkp.strand == "-" and order == 1) or \
             (bkp.strand == "+" and order == 2):
-        order = (bkp.firstexon, bkp.exon)
+        ordert = (bkp.firstexon, bkp.exon)
     else:
         raise Exception(
             "Something went wrong with notes.")
-    if order[0] == order[1]:
-        return "exon %s" % (order[0])
+    if ordert[0] == ordert[1]:
+        return "exon %s" % (ordert[0])
     else:
-        return "exons %s - %s" % order 
+        return "exons %s - %s" % ordert
+
+
+def get_fusion_exon_order(bkp, order):
+    if order == 1:
+        if bkp.firstexon == bkp.exon:
+            ordern = "exon %s" % (bkp.firstexon)
+        else:
+            ordern = "exons %s - %s" % (bkp.firstexon,
+                                      bkp.exon)
+    else:
+        if bkp.exon == bkp.lastexon:
+            ordern = "exon %s" % (bkp.lastexon)
+        else:
+            ordern = "exons %s - %s" % (bkp.exon,
+                                      bkp.lastexon)
+    return ordern
 
 
 def get_exons_involved(sv, refFlat_summary):
@@ -76,14 +91,12 @@ def get_exons_involved(sv, refFlat_summary):
     sv -> None
     """
     if sv.isFusion:
-        get_bkp_info(sv.fusionPartner1, refFlat_summary,1)
-        get_bkp_info(sv.fusionPartner2, refFlat_summary,2)
-        note1 = "%s exons %s - %s" % (sv.fusionPartner1.gene,
-                                      sv.fusionPartner1.firstexon,
-                                      sv.fusionPartner1.exon)
-        note2 = "%s exons %s - %s" % (sv.fusionPartner2.gene,
-                                      sv.fusionPartner2.exon,
-                                      sv.fusionPartner2.lastexon)
+        get_bkp_info(sv.fusionPartner1, refFlat_summary, 1)
+        get_bkp_info(sv.fusionPartner2, refFlat_summary, 2)
+        note1 = sv.fusionPartner1.gene + " " + \
+            get_fusion_exon_order(sv.fusionPartner1, 1)
+        note2 = sv.fusionPartner2.gene + " " + \
+            get_fusion_exon_order(sv.fusionPartner2, 2)
         sv.fusionPartner1.variantSite1, sv.fusionPartner1.variantSite2 = \
             sv.fusionPartner1.startpos, sv.fusionPartner1.pos
         sv.fusionPartner2.variantSite1, sv.fusionPartner2.variantSite2 = \
@@ -94,59 +107,46 @@ def get_exons_involved(sv, refFlat_summary):
             return "of %s to %s." % (note1, note2)
     elif sv.bkp1.isPanel and sv.bkp2.isPanel and \
             sv.bkp1.isCoding and sv.bkp2.isCoding:
-        get_bkp_info(sv.annotationPartner1, refFlat_summary,1)
-        get_bkp_info(sv.annotationPartner2, refFlat_summary,2)
+        get_bkp_info(sv.bkp1, refFlat_summary, 1)
+        get_bkp_info(sv.bkp2, refFlat_summary, 2)
         if sv.svtype == "TRANSLOCATION":
             note1 = "%s %s and %s %s" % \
-                (sv.annotationPartner1.gene, sv.annotationPartner1.site,
-                sv.annotationPartner2.gene, sv.annotationPartner2.site)
+                (sv.bkp1.gene, sv.bkp1.site,
+                 sv.bkp2.gene, sv.bkp2.site)
             return "with breakpoints in %s." % (note1)
         elif sv.isIntragenic:
-            note1 = "exons %s - %s" % (sv.annotationPartner1.exon,
-                                       sv.annotationPartner2.exon)
+            if not sv.bkp1.exon == sv.bkp2.exon:
+                note1 = "exons %s - %s" % (
+                    sv.annotationPartner1.exon,
+                    sv.annotationPartner2.exon)
+            else:
+                note1 = "exon %s" % (sv.annotationPartner1.exon)
             return "of %s." % (note1)
         else:
-            note1 = sv.annotationPartner1.gene + get_exon_order(sv.annotationPartner1, 1)
-            note2 = sv.annotationPartner2.gene + get_exon_order(sv.annotationPartner2, 2)
+            note1 = sv.bkp1.gene + " " + get_exon_order(sv.bkp1, 1)
+            note2 = sv.bkp2.gene + " " + get_exon_order(sv.bkp2, 2)
             return "of %s and %s." % (note1, note2)
     elif sv.bkp1.isPanel and sv.bkp1.isCoding:
-        get_bkp_info(sv.annotationPartner1, refFlat_summary)
+        get_bkp_info(sv.bkp1, refFlat_summary)
         if sv.svtype == "TRANSLOCATION":
-            note1 = "with a breakpoint in %s" % \
-                (sv.annotationPartner1.site)
+            note1 = "with a breakpoint in %s" % (sv.bkp1.site)
         else:
-            note1 = get_exon_order(sv.annotationPartner1, 1)
-        """    
-        elif sv.bkp1.strand == "+":
-            note1 = "exons %s - %s" % (sv.annotationPartner1.exon,
-                                       sv.annotationPartner1.lastexon)
-        elif sv.bkp1.strand == "-":
-            note1 = "exons %s - %s" % (sv.annotationPartner1.firstexon,
-                                       sv.annotationPartner1.exon)
-        """
-        return "of %s." % (note1)
+            note1 = "of " + get_exon_order(sv.bkp1, 1)
+        return "%s." % (note1)
     else:
-        get_bkp_info(sv.annotationPartner2, refFlat_summary)
+        get_bkp_info(sv.bkp2, refFlat_summary)
         if sv.svtype == "TRANSLOCATION":
-            note1 = "with a breakpoint in %s" % \
-                (sv.annotationPartner2.site)
+            note1 = "with a breakpoint in %s" % (sv.bkp2.site)
         else:
-            note1 = get_exon_order(sv.annotationPartner2, 2)
-        """
-        elif sv.bkp2.strand == "-":
-            note1 = "exons %s - %s" % (sv.annotationPartner2.exon,
-                                       sv.annotationPartner2.lastexon)
-        elif sv.bkp2.strand == "+":
-            note1 = "exons %s - %s" % (sv.annotationPartner2.firstexon,
-                                       sv.annotationPartner2.exon)
-        """
-        return "of %s." % (note1)
+            note1 = "of " + get_exon_order(sv.bkp2, 2)
+        return "%s." % (note1)
     return
 
 
 def getOverlap(a, b):
-    #return max(0, min(a[1], b[1]) - max(a[0], b[0]))
+    # return max(0, min(a[1], b[1]) - max(a[0], b[0]))
     return min(a[1], b[1]) - max(a[0], b[0])
+
 
 def get_kinase_annotation(bkp, kinase_annotation):
     bkp.isEntireKinase = False
@@ -202,10 +202,10 @@ def get_prefix(sv):
     elif sv.isIntragenic:
         prefix += str(sv.annotation.split(":")[0]) + \
             " is an intragenic " + \
-            sv.svtype.lower() + " of "
+            sv.svtype.lower() + " "
     else:
         prefix += str(sv.annotation.split(":")[0]) + \
-            " is a " + sv.svtype.lower() + " of "
+            " is a " + sv.svtype.lower() + " "
     return prefix
 
 
@@ -261,13 +261,13 @@ def special_cases(sv, Note):
     }
     if sv.annotation.startswith("EGFR (NM_005228) rearrangement:"):
         if sv.annotationPartner1.exon == 2 and \
-            sv.annotationPartner2.exon == 7:
+                sv.annotationPartner2.exon == 7:
             return special_case_notes['vIII']
-        elif (sv.annotationPartner1.exon == 25 or \
-            sv.annotationPartner1.exon == 24) and \
-            (sv.annotationPartner2.exon == 27 or \
+        elif (sv.annotationPartner1.exon == 25 or
+              sv.annotationPartner1.exon == 24) and \
+            (sv.annotationPartner2.exon == 27 or
                 sv.annotationPartner2.exon == 28) and \
-                    sv.svtype == "DELETION":
+                sv.svtype == "DELETION":
             return special_case_notes['CTD']
         elif sv.annotationPartner1.exon == 18 and \
             sv.annotationPartner2.exon == 25 and \
@@ -298,19 +298,12 @@ def get_position(sv, Note, prefix):
     note_local = Note.split(".")[0]
     if sv.isFusion:
         return "%s exon %s to %s exon %s" % \
-            (sv.fusionPartner1.gene, sv.fusionPartner1.exon, 
-            sv.fusionPartner2.gene, sv.fusionPartner2.exon)
+            (sv.fusionPartner1.gene, sv.fusionPartner1.exon,
+             sv.fusionPartner2.gene, sv.fusionPartner2.exon)
     else:
         position = re.sub(
             str(prefix), "", note_local, count=1)
         position = re.sub(
             r'\bof \b|\binvolves \b|\bwith breakpoints in \b|\bwith a breakpoint in \b', "",
-                    position, count=1)
+            position, count=1)
         return position
-"""        
-    elif sv.bkp1.isPanel and sv.bkp2.isPanel and \
-            sv.bkp1.isCoding and sv.bkp2.isCoding:
-        position = re.sub(
-            str(prefix), "", note_local, count=1)
-        return
-"""
