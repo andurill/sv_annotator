@@ -80,7 +80,7 @@ def get_other_svs(sv):
                 (gene1, tx1, fusion_type, cdna1, cdna2, svtype)
             return Annotation
         else:
-            return "%s (%s) - %s (%s) %s: %s:%s_%s:%s%s" %\
+            Annotation = "%s (%s) - %s (%s) %s: %s:%s_%s:%s%s" %\
                 (gene1, tx1, gene2, tx2, fusion_type,
                  cdna1, gene1, cdna2, gene2, svtype)
             return Annotation
@@ -88,13 +88,15 @@ def get_other_svs(sv):
         gene1, tx1, cdna1 = sv.bkp1.gene, sv.bkp1.transcript, sv.bkp1.cdna
         cdna2 = sv.bkp2.cdna
         Annotation = "%s (%s) %s: %s:%s_%s%s" %\
-                (gene1, tx1, fusion_type, cdna1, gene1, cdna2, svtype)
+                (gene1, tx1, fusion_type, cdna1, gene1,
+                 "chr" + sv.bkp2.chrom + ":g." + str(sv.bkp2.pos), svtype)
         return Annotation
     else:
         gene2, tx2, cdna2 = sv.bkp2.gene, sv.bkp2.transcript, sv.bkp2.cdna
         cdna1 = sv.bkp1.cdna
         Annotation = "%s (%s) %s: %s:%s_%s%s" %\
-                (gene2, tx2, fusion_type, cdna2, gene2, cdna1, svtype)
+                (gene2, tx2, fusion_type, cdna2, gene2,
+                 "chr" + sv.bkp1.chrom + ":g." + str(sv.bkp1.pos), svtype)
         return Annotation
 
 

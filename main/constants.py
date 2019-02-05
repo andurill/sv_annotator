@@ -29,7 +29,7 @@ refFlat_summary = pd.read_csv(
         dtype={'a': str, 'b': str, 'c': str, 
         'd': str, 'e': int, 'f': str, 'g': str})
 
-        
+
 #Created: 28-Oct-2018
 IMPACTv6_targets = {
     'ABL1': 1,
@@ -605,7 +605,58 @@ IMPACTv6_kinase_targets = {
 
 #Created: 28-Oct-2018
 IMPACT_TumourSuppressors = {
-	'TP53' : 1
+'ACTG1' : 1,'AMER1' : 1,'ANKRD11' : 1,'APC' : 1,'ARID1A' : 1,
+'ARID1B' : 1,'ARID2' : 1,'ARID3A' : 1,'ARID4A' : 1,'ARID4B' : 1,
+'ARID5B' : 1,'ASXL1' : 1,'ASXL2' : 1,'ATM' : 1,'ATP6V1B2' : 1,
+'ATR' : 1,'ATRX' : 1,'ATXN2' : 1,'AXIN1' : 1,'AXIN2' : 1,
+'B2M' : 1,'BACH2' : 1,'BAP1' : 1,'BARD1' : 1,'BBC3' : 1,
+'BCL10' : 1,'BCL11B' : 1,'BCL2L11' : 1,'BCOR' : 1,'BCORL1' : 1,
+'BLM' : 1,'BMPR1A' : 1,'BRCA1' : 1,'BRCA2' : 1,'BRIP1' : 1,
+'BTG1' : 1,'CASP8' : 1,'CBFB' : 1,'CBL' : 1,'CD58' : 1,
+'CDC73' : 1,'CDH1' : 1,'CDK12' : 1,'CDKN1A' : 1,'CDKN1B' : 1,
+'CDKN2A' : 1,'CDKN2B' : 1,'CDKN2C' : 1,'CEBPA' : 1,'CHEK1' : 1,
+'CHEK2' : 1,'CIC' : 1,'CIITA' : 1,'CRBN' : 1,'CREBBP' : 1,
+'CTCF' : 1,'CUX1' : 1,'CYLD' : 1,'DAXX' : 1,'DDX3X' : 1,
+'DICER1' : 1,'DNMT3A' : 1,'DNMT3B' : 1,'DTX1' : 1,'DUSP22' : 1,
+'DUSP4' : 1,'ECT2L' : 1,'EED' : 1,'EGR1' : 1,'ELF3' : 1,
+'EP300' : 1,'EP400' : 1,'EPCAM' : 1,'EPHA3' : 1,'EPHA7' : 1,
+'ERCC2' : 1,'ERCC3' : 1,'ERCC4' : 1,'ERF' : 1,'ERRFI1' : 1,
+'ESCO2' : 1,'EZH2' : 1,'FAM175A' : 1,'FAM58A' : 1,'FANCA' : 1,
+'FANCC' : 1,'FANCD2' : 1,'FAS' : 1,'FAT1' : 1,'FBXO11' : 1,
+'FBXW7' : 1,'FH' : 1,'FLCN' : 1,'FOXA1' : 1,'FOXL2' : 1,
+'FOXO1' : 1,'FOXP1' : 1,'FUBP1' : 1,'GATA3' : 1,'GPS2' : 1,
+'GRIN2A' : 1,'HDAC4' : 1,'HIST1H1B' : 1,'HIST1H1D' : 1,
+'HLA-A' : 1,'HLA-B' : 1,'HNF1A' : 1,'HOXB13' : 1,'ID3' : 1,
+'IKZF3' : 1,'INHA' : 1,'INPP4B' : 1,'INPPL1' : 1,'IRF1' : 1,
+'IRF8' : 1,'JAK1' : 1,'KDM5C' : 1,'KDM6A' : 1,'KEAP1' : 1,
+'KLF4' : 1,'KMT2A' : 1,'KMT2B' : 1,'KMT2C' : 1,'KMT2D' : 1,
+'LATS1' : 1,'LATS2' : 1,'LTB' : 1,'MAP2K4' : 1,'MAP3K1' : 1,
+'MAX' : 1,'MED12' : 1,'MEN1' : 1,'MGA' : 1,'MITF' : 1,'MLH1' : 1,
+'MOB3B' : 1,'MRE11A' : 1,'MSH2' : 1,'MSH3' : 1,'MSH6' : 1,
+'MST1' : 1,'MUTYH' : 1,'NBN' : 1,'NCOR1' : 1,'NF1' : 1,'NF2' : 1,
+'NFKBIA' : 1,'NKX3-1' : 1,'NOTCH1' : 1,'NOTCH2' : 1,'NOTCH3' : 1,
+'NOTCH4' : 1,'NPM1' : 1,'NSD1' : 1,'NTHL1' : 1,'P2RY8' : 1,
+'PALB2' : 1,'PARK2' : 1,'PARP1' : 1,'PAX5' : 1,'PBRM1' : 1,
+'PDS5B' : 1,'PHOX2B' : 1,'PIGA' : 1,'PIK3R1' : 1,'PIK3R2' : 1,
+'PIK3R3' : 1,'PMAIP1' : 1,'PMS1' : 1,'PMS2' : 1,'POLD1' : 1,
+'POLE' : 1,'POT1' : 1,'PPP2R1A' : 1,'PPP6C' : 1,'PRDM1' : 1,
+'PTCH1' : 1,'PTEN' : 1,'PTPN1' : 1,'PTPN2' : 1,'PTPRD' : 1,
+'PTPRS' : 1,'PTPRT' : 1,'RAD21' : 1,'RAD50' : 1,'RAD51' : 1,
+'RAD51B' : 1,'RAD51C' : 1,'RAD51D' : 1,'RASA1' : 1,'RB1' : 1,
+'RBM10' : 1,'RBM15' : 1,'RECQL' : 1,'RECQL4' : 1,'RNF43' : 1,
+'ROBO1' : 1,'RTEL1' : 1,'RUNX1' : 1,'RYBP' : 1,'SAMHD1' : 1,
+'SDHA' : 1,'SDHAF2' : 1,'SDHB' : 1,'SDHC' : 1,'SDHD' : 1,
+'SESN1' : 1,'SESN2' : 1,'SESN3' : 1,'SETD2' : 1,'SETDB1' : 1,
+'SETDB2' : 1,'SH2B3' : 1,'SH2D1A' : 1,'SHQ1' : 1,'SLX4' : 1,
+'SMAD2' : 1,'SMAD3' : 1,'SMAD4' : 1,'SMARCA4' : 1,'SMARCB1' : 1,
+'SMC1A' : 1,'SMC3' : 1,'SMG1' : 1,'SOCS1' : 1,'SOX17' : 1,
+'SOX9' : 1,'SP140' : 1,'SPEN' : 1,'SPOP' : 1,'SPRED1' : 1,
+'STAG1' : 1,'STAG2' : 1,'STK11' : 1,'SUFU' : 1,'TBL1XR1' : 1,
+'TBX3' : 1,'TCF3' : 1,'TCF7L2' : 1,'TET1' : 1,'TET2' : 1,
+'TET3' : 1,'TGFBR1' : 1,'TGFBR2' : 1,'TMEM127' : 1,'TNFAIP3' : 1,
+'TNFRSF14' : 1,'TOP1' : 1,'TP53' : 1,'TP53BP1' : 1,'TP63' : 1,
+'TRAF3' : 1,'TRAF5' : 1,'TSC1' : 1,'TSC2' : 1,'VHL' : 1,'WT1' : 1,
+'XRCC2' : 1,'ZFHX3' : 1
 }
 
 

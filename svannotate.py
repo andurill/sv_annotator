@@ -34,13 +34,13 @@ hotspot = IMPACT_Hotspots
 def annotate_SV(raw):
     message, note, annotation, position = [None]*4
     try:
-        svtype, bkp1, bkp2, genes, site1, site2, description, connection = raw.split(",")
+        svtype, bkp1, bkp2, genes, site1, site2, description= raw.split(",")
     except ValueError as e:
         message = e
         return message, note, annotation, position
 
     try:
-        variant = sv(svtype, bkp1, bkp2, genes, site1, site2, description, connection)
+        variant = sv(svtype, bkp1, bkp2, genes, site1, site2, description)
     except Exception as e:
         message = e
         return message, note, annotation, position       

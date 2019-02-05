@@ -7,15 +7,20 @@ import pandas as pd
 import numpy as np
 
 
-def get_bkp_info(bkp, refFlat_summary):
+def get_bkp_info(bkp, refFlat_summary, shift=0):
     """
     Get exon and intron features for a breakpoint object.
     bkp -> None
     """
-    bkp_dict = refFlat_summary[
-        (refFlat_summary['Gene'].values == bkp.gene) &
-        (refFlat_summary['Transcript'].values == bkp.transcript)]\
-        .to_dict('records').pop()
+    try:
+        bkp_dict = refFlat_summary[
+            (refFlat_summary['Gene'].values == bkp.gene) &
+            (refFlat_summary['Transcript'].values == bkp.transcript)]\
+            .to_dict('records').pop()
+    except IndexError:
+        raise Exception(
+            "Exon and Intron information not found for %s in refFlat_summary."\
+                % (bkp.gene))
     bkp.firstexon = bkp_dict['first_exon']
     bkp.lastexon = bkp_dict['last_exon']
     if bkp_dict['Strand'] == "+":
@@ -31,10 +36,16 @@ def get_bkp_info(bkp, refFlat_summary):
         exon = bkp.desc.split(" ")[5]
         if "before" in bkp.desc:
             bkp.intron = int(exon) - 1
-            bkp.exon = int(exon)
+            if shift == 0 or shift == 2:
+                bkp.exon = int(exon)
+            else:
+                bkp.exon = int(exon) - 1
         else:
             bkp.intron = int(exon)
-            bkp.exon = int(exon)
+            if shift == 0 or shift == 1:
+                bkp.exon = int(exon)
+            else:
+                bkp.exon = int(exon) + 1
     if bkp.intron:
         bkp.site = "intron " + str(bkp.intron)
     else:
@@ -49,8 +60,8 @@ def get_exons_involved(sv, refFlat_summary):
     sv -> None
     """
     if sv.isFusion:
-        get_bkp_info(sv.fusionPartner1, refFlat_summary)
-        get_bkp_info(sv.fusionPartner2, refFlat_summary)
+        get_bkp_info(sv.fusionPartner1, refFlat_summary,1)
+        get_bkp_info(sv.fusionPartner2, refFlat_summary,2)
         note1 = "%s exons %s - %s" % (sv.fusionPartner1.gene,
                                       sv.fusionPartner1.firstexon,
                                       sv.fusionPartner1.exon)
@@ -117,8 +128,8 @@ def get_exons_involved(sv, refFlat_summary):
 
 
 def getOverlap(a, b):
-    return max(0, min(a[1], b[1]) - max(a[0], b[0]))
-
+    #return max(0, min(a[1], b[1]) - max(a[0], b[0]))
+    return min(a[1], b[1]) - max(a[0], b[0])
 
 def get_kinase_annotation(bkp, kinase_annotation):
     bkp.isEntireKinase = False
@@ -143,6 +154,9 @@ def get_kinase_annotation(bkp, kinase_annotation):
         interval, kinase_interval = \
             map(lambda x: [int(y) for y in x], (interval, kinase_interval))
         overlap = getOverlap(interval, kinase_interval)
+        print interval
+        print kinase_interval
+        print overlap
         if overlap == 0:
             return "does not include the kinase domain of %s" % (bkp.gene)
         else:
@@ -250,11 +264,11 @@ def get_notes(sv, refFlat_summary, kinase_annotation):
     if sv.isFusion:
         Note += get_misc_notes(sv, kinase_annotation)
     Note += functional_significance(sv)
-    position = get_position(Note)
+    #position = get_position(Note)
     Note = special_cases(sv, Note)
     return Note
 
-
+"""
 def get_position(sv, Note):
     if sv.isFusion:
         return "%s %s to %s %s" % (sv.fusionPartner1.gene,
@@ -263,3 +277,4 @@ def get_position(sv, Note):
                                    sv.fusionPartner2.exon)
     else:
         position = re
+"""

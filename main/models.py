@@ -20,6 +20,7 @@ class bkp(object):
             raise
 
     def expand(self, refFlat, target_panel, panelKinase, hotspot, tumourSuppressor):
+        message = ""
         try:
             self.transcript = refFlat[refFlat['Gene'] == self.gene]\
                 ['Transcripts'].str.split(",").tolist().pop()
@@ -76,12 +77,11 @@ class sv(object):
     Class to represent a structural variant and other related attributes and features.
     """
     message = ""
-    def __init__(self, svtype, bkp1, bkp2, genes, site1, site2, description, connection):
+    def __init__(self, svtype, bkp1, bkp2, genes, site1, site2, description):
         self.svtype = svtype
         self.site1 = site1
         self.site2 = site2
         self.description = description
-        self.connection = connection
         try:
             self.chr1, self.pos1 = bkp1.split(":")  # IncorrectBkpFormat
             self.chr2, self.pos2 = bkp2.split(":")  # IncorrectBkpFormat
