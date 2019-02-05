@@ -174,7 +174,7 @@ class sv(object):
         # Annotation variables
         if self.svtype == "TRANSLOCATION":
             if self.bkp1.chrom.isdigit() and self.bkp2.chrom.isdigit():
-                if int(self.bkp1.chrom) < int(self.bkp1.chrom):
+                if int(self.bkp1.chrom) < int(self.bkp2.chrom):
                     self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
                 else:
                     self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1

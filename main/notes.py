@@ -91,29 +91,29 @@ def get_exons_involved(sv, refFlat_summary):
         if sv.isKnownFusion:
             return "%s and %s." % (note1, note2)
         else:
-            return "%s to %s." % (note1, note2)
+            return "of %s to %s." % (note1, note2)
     elif sv.bkp1.isPanel and sv.bkp2.isPanel and \
             sv.bkp1.isCoding and sv.bkp2.isCoding:
         get_bkp_info(sv.annotationPartner1, refFlat_summary,1)
         get_bkp_info(sv.annotationPartner2, refFlat_summary,2)
         if sv.svtype == "TRANSLOCATION":
-            note1 = "%s %s and %s %s" % (sv.annotationPartner1.gene,
-                                         sv.annotationPartner1.site,
-                                         sv.annotationPartner2.gene,
-                                         sv.annotationPartner2.site)
-            return "%s." % (note1)
+            note1 = "%s %s and %s %s" % \
+                (sv.annotationPartner1.gene, sv.annotationPartner1.site,
+                sv.annotationPartner2.gene, sv.annotationPartner2.site)
+            return "with breakpoints in %s." % (note1)
         elif sv.isIntragenic:
             note1 = "exons %s - %s" % (sv.annotationPartner1.exon,
                                        sv.annotationPartner2.exon)
-            return "%s." % (note1)
+            return "of %s." % (note1)
         else:
             note1 = sv.annotationPartner1.gene + get_exon_order(sv.annotationPartner1, 1)
             note2 = sv.annotationPartner2.gene + get_exon_order(sv.annotationPartner2, 2)
-            return "%s and %s." % (note1, note2)
+            return "of %s and %s." % (note1, note2)
     elif sv.bkp1.isPanel and sv.bkp1.isCoding:
         get_bkp_info(sv.annotationPartner1, refFlat_summary)
         if sv.svtype == "TRANSLOCATION":
-            note1 = "%s" % (sv.annotationPartner1.site)
+            note1 = "with a breakpoint in %s" % \
+                (sv.annotationPartner1.site)
         else:
             note1 = get_exon_order(sv.annotationPartner1, 1)
         """    
@@ -124,11 +124,12 @@ def get_exons_involved(sv, refFlat_summary):
             note1 = "exons %s - %s" % (sv.annotationPartner1.firstexon,
                                        sv.annotationPartner1.exon)
         """
-        return "%s." % (note1)
+        return "of %s." % (note1)
     else:
         get_bkp_info(sv.annotationPartner2, refFlat_summary)
         if sv.svtype == "TRANSLOCATION":
-            note1 = "%s" % (sv.annotationPartner2.site)
+            note1 = "with a breakpoint in %s" % \
+                (sv.annotationPartner2.site)
         else:
             note1 = get_exon_order(sv.annotationPartner2, 2)
         """
@@ -139,7 +140,7 @@ def get_exons_involved(sv, refFlat_summary):
             note1 = "exons %s - %s" % (sv.annotationPartner2.firstexon,
                                        sv.annotationPartner2.exon)
         """
-        return "%s." % (note1)
+        return "of %s." % (note1)
     return
 
 
@@ -191,22 +192,20 @@ def get_prefix(sv):
     sv -> str
     """
     prefix = "The "
-    fusion_type = ""  # "rearrangement"
     if sv.isKnownFusion:
-        fusion_type = ""  # "fusion"
         prefix += str(sv.annotation.split(":")[0]) + \
-            fusion_type + " involves "
+            " involves "
     elif sv.isFusion:
         prefix += str(sv.annotation.split(":")[0]) + \
-            fusion_type + " is a " + sv.svtype.lower() + \
-            " that results in a fusion of "
+            " is a " + sv.svtype.lower() + \
+            " that results in a fusion "
     elif sv.isIntragenic:
         prefix += str(sv.annotation.split(":")[0]) + \
-            fusion_type + " is an intragenic " + \
+            " is an intragenic " + \
             sv.svtype.lower() + " of "
     else:
         prefix += str(sv.annotation.split(":")[0]) + \
-            fusion_type + " is a " + sv.svtype.lower() + " of "
+            " is a " + sv.svtype.lower() + " of "
     return prefix
 
 
@@ -303,7 +302,10 @@ def get_position(sv, Note, prefix):
             sv.fusionPartner2.gene, sv.fusionPartner2.exon)
     else:
         position = re.sub(
-            str(prefix), "", note_local, count=3)
+            str(prefix), "", note_local, count=1)
+        position = re.sub(
+            r'\bof \b|\binvolves \b|\bwith breakpoints in \b|\bwith a breakpoint in \b', "",
+                    position, count=1)
         return position
 """        
     elif sv.bkp1.isPanel and sv.bkp2.isPanel and \
