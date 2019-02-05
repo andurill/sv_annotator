@@ -56,13 +56,17 @@ def get_bkp_info(bkp, refFlat_summary, shift=0):
 def get_exon_order(bkp, order):
     if (bkp.strand == "+" and order == 1) or \
         (bkp.strand == "-" and order == 2):
-        return (bkp.gene, bkp.exon, bkp.lastexon)
+        order = (bkp.exon, bkp.lastexon)
     elif (bkp.strand == "-" and order == 1) or \
             (bkp.strand == "+" and order == 2):
-        return (bkp.gene, bkp.firstexon, bkp.exon)
+        order = (bkp.firstexon, bkp.exon)
     else:
         raise Exception(
             "Something went wrong with notes.")
+    if order[0] == order[1]:
+        return "exon %s" % (order[0])
+    else:
+        return "exons %s - %s" % order 
 
 
 def get_exons_involved(sv, refFlat_summary):
@@ -103,16 +107,15 @@ def get_exons_involved(sv, refFlat_summary):
                                        sv.annotationPartner2.exon)
             return "%s." % (note1)
         else:
-            note1 = "%s exons %s - %s" % get_exon_order(sv.annotationPartner1, 1)
-            note2 = "%s exons %s - %s" % get_exon_order(sv.annotationPartner2, 2)
+            note1 = sv.annotationPartner1.gene + get_exon_order(sv.annotationPartner1, 1)
+            note2 = sv.annotationPartner2.gene + get_exon_order(sv.annotationPartner2, 2)
             return "%s and %s." % (note1, note2)
     elif sv.bkp1.isPanel and sv.bkp1.isCoding:
         get_bkp_info(sv.annotationPartner1, refFlat_summary)
         if sv.svtype == "TRANSLOCATION":
             note1 = "%s" % (sv.annotationPartner1.site)
         else:
-            note1 = "exons %s - %s" % get_exon_order(
-                sv.annotationPartner1, 1)[1:3]
+            note1 = get_exon_order(sv.annotationPartner1, 1)
         """    
         elif sv.bkp1.strand == "+":
             note1 = "exons %s - %s" % (sv.annotationPartner1.exon,
@@ -127,8 +130,7 @@ def get_exons_involved(sv, refFlat_summary):
         if sv.svtype == "TRANSLOCATION":
             note1 = "%s" % (sv.annotationPartner2.site)
         else:
-            note1 = "exons %s - %s" % get_exon_order(
-                sv.annotationPartner2, 2)[1:3]
+            note1 = get_exon_order(sv.annotationPartner2, 2)
         """
         elif sv.bkp2.strand == "-":
             note1 = "exons %s - %s" % (sv.annotationPartner2.exon,
