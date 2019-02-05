@@ -145,6 +145,7 @@ IMPACTv6_targets = {
     'EIF4A2': 1,
     'EIF4E': 1,
     'ELF3': 1,
+    'EML4': 1,
     'EP300': 1,
     'EPAS1': 1,
     'EPCAM': 1,

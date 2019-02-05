@@ -2,6 +2,23 @@
 import os, sys, requests, warnings
 import pandas as pd
 
+
+class Message(object):
+    """
+    Class to process and carry-over messages from downstream processes
+    """
+    def __init__(self):
+        self.message = ""
+    
+
+    def append(self,message_string):
+        self.message += message_string
+    
+
+    def retrieve(self):
+        return self.message
+
+
 class bkp(object):
     """
     Class to represent a breakpoint and other related attributes and features.
@@ -43,7 +60,7 @@ class bkp(object):
         elif "(-)" in self.desc:
             self.strand = "-"
         else:
-            raise Exception("Cannot get strand info for breakpoint %s:%s."
+            raise Exception("Cannot get strand orientation info for breakpoint %s:%s."
                             % (self.chrom, self.pos))
         
         if self.cdna and self.cdna.startswith("c."):
@@ -56,7 +73,8 @@ class bkp(object):
         else:
             self.isPanel = False
 
-        if self.gene in tumourSuppressor:
+        if self.gene in tumourSuppressor and \
+            self.isPanel:
             self.isTumourSuppressor = True
         else:
             self.isTumourSuppressor = False
@@ -87,8 +105,8 @@ class sv(object):
             self.chr2, self.pos2 = bkp2.split(":")  # IncorrectBkpFormat
             self.gene1, self.gene2 = genes.split(" / ")  # IncorrectGenesFormat
         except ValueError:
-            print(
-                "Could not create a new instance of sv class due to inappropriate values for parameters.")
+            raise Exception(
+                "Could not create a new instance of sv class due to incorrect format of arguments.")
 
     def expand(self, refFlat, target_panel, panelKinase, hotspot, tumourSuppressor, oncoKb):
         self.bkp1 = bkp(self.chr1, self.pos1, self.gene1, self.site1)
@@ -113,7 +131,8 @@ class sv(object):
             self.isIntragenic = False
 
         # Fusion variables
-        if self.description.startswith("Protein Fusion: "):
+        if self.description.startswith("Protein Fusion:") and \
+            self.bkp1.isCoding and self.bkp2.isCoding:
             self.isFusion = True
             s = self.description
             self.fusionGene = s[s.find("{")+1:s.find("}")]
@@ -124,9 +143,11 @@ class sv(object):
                 raise IncorrectDescriptionFormat()
 
             # Check if fusion partners match the genes provided as inputs
-            if self.fusionPartner1 == self.bkp1.gene and self.fusionPartner2 == self.bkp2.gene:
+            if self.fusionPartner1 == self.bkp1.gene and \
+                self.fusionPartner2 == self.bkp2.gene:
                 self.fusionPartner1, self.fusionPartner2 = self.bkp1, self.bkp2
-            elif self.fusionPartner2 == self.bkp1.gene and self.fusionPartner1 == self.bkp2.gene:
+            elif self.fusionPartner2 == self.bkp1.gene and \
+                self.fusionPartner1 == self.bkp2.gene:
                 self.fusionPartner2, self.fusionPartner1 = self.bkp1, self.bkp2
             else:
                 raise FusionGeneConflict()
@@ -140,6 +161,15 @@ class sv(object):
             self.fusionGene = None
             self.isFusion = False
             self.isKnownFusion = False
+            if self.description.startswith("Protein Fusion:"):
+                message = ""
+                if not self.bkp1.isCoding:
+                    message = "coding cDNA annotation cannot be found\
+                        for %s %s." % (self.bkp1.gene, self.bkp1.transcript) + ";"
+                elif not self.bkp2.isCoding:
+                    message = "coding cDNA annotation cannot be found\
+                        for %s %s." % (self.bkp2.gene, self.bkp2.transcript) + ";"
+                warnings.warn(message, Warning)
 
         # Annotation variables
         if self.svtype == "TRANSLOCATION":
