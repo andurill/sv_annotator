@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
-import os, sys
+import os
+import sys
 from constants import cb_df
 from models import BreakPointIntergenic
 
@@ -88,15 +89,15 @@ def get_other_svs(sv):
         gene1, tx1, cdna1 = sv.bkp1.gene, sv.bkp1.transcript, sv.bkp1.cdna
         cdna2 = sv.bkp2.cdna
         Annotation = "%s (%s) %s: %s:%s_%s%s" %\
-                (gene1, tx1, fusion_type, cdna1, gene1,
-                 "chr" + sv.bkp2.chrom + ":g." + str(sv.bkp2.pos), svtype)
+            (gene1, tx1, fusion_type, cdna1, gene1,
+             "chr" + sv.bkp2.chrom + ":g." + str(sv.bkp2.pos), svtype)
         return Annotation
     else:
         gene2, tx2, cdna2 = sv.bkp2.gene, sv.bkp2.transcript, sv.bkp2.cdna
         cdna1 = sv.bkp1.cdna
         Annotation = "%s (%s) %s: %s:%s_%s%s" %\
-                (gene2, tx2, fusion_type, cdna2, gene2,
-                 "chr" + sv.bkp1.chrom + ":g." + str(sv.bkp1.pos), svtype)
+            (gene2, tx2, fusion_type, cdna2, gene2,
+             "chr" + sv.bkp1.chrom + ":g." + str(sv.bkp1.pos), svtype)
         return Annotation
 
 
@@ -147,7 +148,7 @@ class MissingCytoBand(Error):
 class MultipleCytoBand(Error):
     '''Raised when multiple cytoband were identified for a breakpoint'''
 
-    def __init__(self):
-        Exception.__init__(
-            self, "Multiple cytobands identified for the breakpoint: " + bkp
-        )
+    def __init__(self, bkp):
+        Exception.__init__(self,
+                           self, "Multiple cytobands identified for the breakpoint: " + bkp
+                           )

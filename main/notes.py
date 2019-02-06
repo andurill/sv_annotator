@@ -54,35 +54,22 @@ def get_bkp_info(bkp, refFlat_summary, shift=0):
 
 
 def get_exon_order(bkp, order):
-    if (bkp.strand == "+" and order == 1) or \
-            (bkp.strand == "-" and order == 2):
+    if any([(bkp.strand == "+" and order == 1),
+            (bkp.strand == "-" and order == 2),
+            (order == 4)]):
         ordert = (bkp.exon, bkp.lastexon)
-    elif (bkp.strand == "-" and order == 1) or \
-            (bkp.strand == "+" and order == 2):
+    elif any([(bkp.strand == "-" and order == 1),
+              (bkp.strand == "+" and order == 2),
+              (order == 3)]):
         ordert = (bkp.firstexon, bkp.exon)
     else:
         raise Exception(
-            "Something went wrong with notes.")
+            "Something terribly went wrong with \
+                determining exon order for notes!")
     if ordert[0] == ordert[1]:
         return "exon %s" % (ordert[0])
     else:
         return "exons %s - %s" % ordert
-
-
-def get_fusion_exon_order(bkp, order):
-    if order == 1:
-        if bkp.firstexon == bkp.exon:
-            ordern = "exon %s" % (bkp.firstexon)
-        else:
-            ordern = "exons %s - %s" % (bkp.firstexon,
-                                        bkp.exon)
-    else:
-        if bkp.exon == bkp.lastexon:
-            ordern = "exon %s" % (bkp.lastexon)
-        else:
-            ordern = "exons %s - %s" % (bkp.exon,
-                                        bkp.lastexon)
-    return ordern
 
 
 def get_exons_involved(sv, refFlat_summary):
@@ -97,9 +84,9 @@ def get_exons_involved(sv, refFlat_summary):
         get_bkp_info(sv.fusionPartner2, refFlat_summary, 2)
         sv.bkpsites = get_bkpsite_note(sv.fusionPartner1, sv.fusionPartner2)
         note1 = sv.fusionPartner1.gene + " " + \
-            get_fusion_exon_order(sv.fusionPartner1, 1)
+            get_exon_order(sv.fusionPartner1, 3)
         note2 = sv.fusionPartner2.gene + " " + \
-            get_fusion_exon_order(sv.fusionPartner2, 2)
+            get_exon_order(sv.fusionPartner2, 4)
         sv.fusionPartner1.variantSite1, sv.fusionPartner1.variantSite2 = \
             sv.fusionPartner1.startpos, sv.fusionPartner1.pos
         sv.fusionPartner2.variantSite1, sv.fusionPartner2.variantSite2 = \
@@ -119,7 +106,7 @@ def get_exons_involved(sv, refFlat_summary):
             return "with breakpoints in %s." % (note1)
         elif sv.isIntragenic:
             sv.bkpsites = get_bkpsite_note(sv.annotationPartner1,
-                                       sv.annotationPartner2)
+                                           sv.annotationPartner2)
             if not sv.bkp1.exon == sv.bkp2.exon:
                 note1 = "exons %s - %s" % (
                     sv.annotationPartner1.exon,
@@ -179,9 +166,6 @@ def get_kinase_annotation(bkp, kinase_annotation):
         interval, kinase_interval = \
             map(lambda x: [int(y) for y in x], (interval, kinase_interval))
         overlap = getOverlap(interval, kinase_interval)
-        print interval
-        print kinase_interval
-        print overlap
         if overlap == 0:
             return "does not include the kinase domain of %s" % (bkp.gene)
         else:
@@ -200,20 +184,24 @@ def get_prefix(sv):
     sv -> str
     """
     prefix = "The "
+    if sv.svtype == "INVERSION" or \
+        sv.isIntragenic:
+        conj = " is an "
+    else:
+        conj = " is a "
     if sv.isKnownFusion:
         prefix += str(sv.annotation.split(":")[0]) + \
             " involves "
     elif sv.isFusion:
         prefix += str(sv.annotation.split(":")[0]) + \
-            " is a " + sv.svtype.lower() + \
+             conj + sv.svtype.lower() + \
             " that results in a fusion "
     elif sv.isIntragenic:
         prefix += str(sv.annotation.split(":")[0]) + \
-            " is an intragenic " + \
-            sv.svtype.lower() + " "
+            conj + "intragenic " + sv.svtype.lower() + " "
     else:
         prefix += str(sv.annotation.split(":")[0]) + \
-            " is a " + sv.svtype.lower() + " "
+            conj + sv.svtype.lower() + " "
     prefix = re.sub(r' \(NM_[0-9]+\)', "", prefix, count=2)
     return prefix
 
@@ -299,32 +287,32 @@ def get_notes(sv, refFlat_summary, kinase_annotation):
     else:
         sv.misc = ""
     sv.sig = (functional_significance(sv) or "")
-    sv.Note = "".join([sv.prefix, sv.exons, \
-        sv.bkpsites, sv.misc, sv.sig])
+    sv.Note = "".join([sv.prefix, sv.exons,
+                       sv.bkpsites, sv.misc, sv.sig])
     position = get_position(sv)
     Note = special_cases(sv)
     return Note, position
 
 
 def get_bkpsite_note(b1=None, b2=None):
-    if all([isinstance(b1, bkp), b1.site.startswith("exon"), \
+    if all([isinstance(b1, bkp), b1.site.startswith("exon"),
             isinstance(b2, bkp), b2.site.startswith("exon")]):
         if b1.gene == b2.gene:
             if b1.site == b2.site:
-                return "The breakpoints are within %s." % \
-                    (b1.site)
+                return " The breakpoints are within %s %s." % \
+                    (b1.gene, b1.site)
             else:
-                return "The breakpoints are within %s and %s." % \
+                return " The breakpoints are within %s and %s." % \
                     (b1.site, b2.site)
         else:
-            return "The breakpoints are within %s %s and %s %s." % \
+            return " The breakpoints are within %s %s and %s %s." % \
                 (b1.gene, b1.site, b2.gene, b2.site)
     elif isinstance(b1, bkp) and b1.site.startswith("exon"):
-        return "One of the breakpoints is within %s." % \
-            (b1.site)
+        return " One of the breakpoints is within %s %s." % \
+            (b1.gene, b1.site)
     elif isinstance(b2, bkp) and b2.site.startswith("exon"):
-        return "One of the breakpoints is within %s." % \
-            (b2.site)
+        return " One of the breakpoints is within %s %s." % \
+            (b2.gene, b2.site)
     else:
         return ""
 

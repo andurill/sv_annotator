@@ -1,5 +1,8 @@
 #!/usr/bin/env python2
-import os, sys, requests, warnings
+import os
+import sys
+import requests
+import warnings
 import pandas as pd
 
 
@@ -7,13 +10,12 @@ class Message(object):
     """
     Class to process and carry-over messages from downstream processes
     """
+
     def __init__(self):
         self.message = ""
-    
 
-    def append(self,message_string):
+    def append(self, message_string):
         self.message += message_string
-    
 
     def retrieve(self):
         return self.message
@@ -23,6 +25,7 @@ class bkp(object):
     """
     Class to represent a breakpoint and other related attributes and features.
     """
+
     def __init__(self, chrom, pos, gene, desc):
         try:
             self.chrom = str(chrom)
@@ -39,8 +42,8 @@ class bkp(object):
     def expand(self, refFlat, target_panel, panelKinase, hotspot, tumourSuppressor):
         message = ""
         try:
-            self.transcript = refFlat[refFlat['Gene'] == self.gene]\
-                ['Transcripts'].str.split(",").tolist().pop()
+            self.transcript = refFlat[refFlat['Gene'] == self.gene]['Transcripts'].str.split(
+                ",").tolist().pop()
         except IndexError:
             self.transcript = []
             e = "Cannot find canonical transcript for " +\
@@ -54,7 +57,7 @@ class bkp(object):
         except Exception as e:
             message = message + e + ";"
             warnings.warn(e, Warning)
-        
+
         if "(+)" in self.desc:
             self.strand = "+"
         elif "(-)" in self.desc:
@@ -62,7 +65,7 @@ class bkp(object):
         else:
             raise Exception("Cannot get strand orientation info for breakpoint %s:%s."
                             % (self.chrom, self.pos))
-        
+
         if self.cdna and self.cdna.startswith("c."):
             self.isCoding = True
         else:
@@ -74,11 +77,11 @@ class bkp(object):
             self.isPanel = False
 
         if self.gene in tumourSuppressor and \
-            self.isPanel:
+                self.isPanel:
             self.isTumourSuppressor = True
         else:
             self.isTumourSuppressor = False
-        
+
         if self.gene in hotspot:
             self.isHotspot = True
         else:
@@ -95,6 +98,7 @@ class sv(object):
     Class to represent a structural variant and other related attributes and features.
     """
     message = ""
+
     def __init__(self, svtype, bkp1, bkp2, genes, site1, site2, description):
         self.svtype = svtype
         self.site1 = site1
@@ -111,8 +115,10 @@ class sv(object):
     def expand(self, refFlat, target_panel, panelKinase, hotspot, tumourSuppressor, oncoKb):
         self.bkp1 = bkp(self.chr1, self.pos1, self.gene1, self.site1)
         self.bkp2 = bkp(self.chr2, self.pos2, self.gene2, self.site2)
-        self.bkp1.expand(refFlat, target_panel, panelKinase, hotspot, tumourSuppressor)
-        self.bkp2.expand(refFlat, target_panel, panelKinase, hotspot, tumourSuppressor)
+        self.bkp1.expand(refFlat, target_panel, panelKinase,
+                         hotspot, tumourSuppressor)
+        self.bkp2.expand(refFlat, target_panel, panelKinase,
+                         hotspot, tumourSuppressor)
 
         # Define key variables
         if not(self.bkp1.isPanel or self.bkp2.isPanel):
@@ -132,22 +138,23 @@ class sv(object):
 
         # Fusion variables
         if self.description.startswith("Protein Fusion:") and \
-            self.bkp1.isCoding and self.bkp2.isCoding:
+                self.bkp1.isCoding and self.bkp2.isCoding:
             self.isFusion = True
             s = self.description
             self.fusionGene = s[s.find("{")+1:s.find("}")]
             # check if fusion is defined in the correct format Gene1:Gene2
             try:
-                self.fusionPartner1, self.fusionPartner2 = self.fusionGene.split(":")
+                self.fusionPartner1, self.fusionPartner2 = self.fusionGene.split(
+                    ":")
             except ValueError:
                 raise IncorrectDescriptionFormat()
 
             # Check if fusion partners match the genes provided as inputs
             if self.fusionPartner1 == self.bkp1.gene and \
-                self.fusionPartner2 == self.bkp2.gene:
+                    self.fusionPartner2 == self.bkp2.gene:
                 self.fusionPartner1, self.fusionPartner2 = self.bkp1, self.bkp2
             elif self.fusionPartner2 == self.bkp1.gene and \
-                self.fusionPartner1 == self.bkp2.gene:
+                    self.fusionPartner1 == self.bkp2.gene:
                 self.fusionPartner2, self.fusionPartner1 = self.bkp1, self.bkp2
             else:
                 raise FusionGeneConflict()
@@ -352,10 +359,10 @@ def get_cdna_pos(bkp):
         result = dict(str(s).split(':', 1) for s in decoded[0]['hgvsc'])
     except KeyError:
         result = {}
-        #raise Exception(
+        # raise Exception(
         #    "Cannot find any cDNA annotations for gene " + bkp.gene)
-        warnings.warn("Cannot find any cDNA annotations for gene " +\
-         bkp.gene, Warning)
+        warnings.warn("Cannot find any cDNA annotations for gene " +
+                      bkp.gene, Warning)
     if bkp.transcript:
         for tx in bkp.transcript:
             if tx in result:
@@ -383,8 +390,8 @@ def make_get_request(query):
             server+ext, headers={"Content-Type": "application/json"})
     except requests.exceptions.RequestException as e:
         #raise e
-        warnings.warn("Error in querying vep for " + str(query) + \
-        "Error: " + str(e))
+        warnings.warn("Error in querying vep for " + str(query) +
+                      "Error: " + str(e))
     return request
 
 
