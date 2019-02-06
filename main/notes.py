@@ -95,7 +95,7 @@ def get_exons_involved(sv, refFlat_summary):
     if sv.isFusion:
         get_bkp_info(sv.fusionPartner1, refFlat_summary, 1)
         get_bkp_info(sv.fusionPartner2, refFlat_summary, 2)
-        sv.bkpsites = get_bkp_note(sv.fusionPartner1, sv.fusionPartner2)
+        sv.bkpsites = get_bkpsite_note(sv.fusionPartner1, sv.fusionPartner2)
         note1 = sv.fusionPartner1.gene + " " + \
             get_fusion_exon_order(sv.fusionPartner1, 1)
         note2 = sv.fusionPartner2.gene + " " + \
@@ -118,7 +118,7 @@ def get_exons_involved(sv, refFlat_summary):
                  sv.bkp2.gene, sv.bkp2.site)
             return "with breakpoints in %s." % (note1)
         elif sv.isIntragenic:
-            sv.bkpsites = get_bkp_note(sv.annotationPartner1,
+            sv.bkpsites = get_bkpsite_note(sv.annotationPartner1,
                                        sv.annotationPartner2)
             if not sv.bkp1.exon == sv.bkp2.exon:
                 note1 = "exons %s - %s" % (
@@ -128,7 +128,7 @@ def get_exons_involved(sv, refFlat_summary):
                 note1 = "exon %s" % (sv.annotationPartner1.exon)
             return "of %s." % (note1)
         else:
-            sv.bkpsites = get_bkp_note(sv.bkp1, sv.bkp2)
+            sv.bkpsites = get_bkpsite_note(sv.bkp1, sv.bkp2)
             note1 = sv.bkp1.gene + " " + get_exon_order(sv.bkp1, 1)
             note2 = sv.bkp2.gene + " " + get_exon_order(sv.bkp2, 2)
             return "of %s and %s." % (note1, note2)
@@ -137,7 +137,7 @@ def get_exons_involved(sv, refFlat_summary):
         if sv.svtype == "TRANSLOCATION":
             note1 = "with a breakpoint in %s" % (sv.bkp1.site)
         else:
-            sv.bkpsites = get_bkp_note(sv.bkp1, None)
+            sv.bkpsites = get_bkpsite_note(sv.bkp1, None)
             note1 = "of " + get_exon_order(sv.bkp1, 1)
         return "%s." % (note1)
     else:
@@ -145,7 +145,7 @@ def get_exons_involved(sv, refFlat_summary):
         if sv.svtype == "TRANSLOCATION":
             note1 = "with a breakpoint in %s" % (sv.bkp2.site)
         else:
-            sv.bkpsites = get_bkp_note(None, sv.bkp2)
+            sv.bkpsites = get_bkpsite_note(None, sv.bkp2)
             note1 = "of " + get_exon_order(sv.bkp2, 2)
         return "%s." % (note1)
     return
@@ -306,9 +306,9 @@ def get_notes(sv, refFlat_summary, kinase_annotation):
     return Note, position
 
 
-def get_bkp_note(b1=None, b2=None):
-    if isinstance(b1, bkp) and b1.site.startswith("exon") and \
-            isinstance(b2, bkp) and b2.site.startswith("exon"):
+def get_bkpsite_note(b1=None, b2=None):
+    if all([isinstance(b1, bkp), b1.site.startswith("exon"), \
+            isinstance(b2, bkp), b2.site.startswith("exon")]):
         if b1.gene == b2.gene:
             if b1.site == b2.site:
                 return "The breakpoints are within %s." % \
