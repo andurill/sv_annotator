@@ -64,7 +64,7 @@ def annotate_SV(raw):
     try:
         note, position = get_notes(variant, refFlat_summary, kinase_annotation)
     except Exception as e:
-        message = e
+        raise
         return message, note, annotation, position
 
     return message, note, annotation, position

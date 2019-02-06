@@ -5,6 +5,7 @@ import sys
 import re
 import pandas as pd
 import numpy as np
+from main.models import bkp
 
 
 def get_bkp_info(bkp, refFlat_summary, shift=0):
@@ -74,13 +75,13 @@ def get_fusion_exon_order(bkp, order):
             ordern = "exon %s" % (bkp.firstexon)
         else:
             ordern = "exons %s - %s" % (bkp.firstexon,
-                                      bkp.exon)
+                                        bkp.exon)
     else:
         if bkp.exon == bkp.lastexon:
             ordern = "exon %s" % (bkp.lastexon)
         else:
             ordern = "exons %s - %s" % (bkp.exon,
-                                      bkp.lastexon)
+                                        bkp.lastexon)
     return ordern
 
 
@@ -90,9 +91,11 @@ def get_exons_involved(sv, refFlat_summary):
     and the breakpoint sites
     sv -> None
     """
+    sv.bkpsites = ""
     if sv.isFusion:
         get_bkp_info(sv.fusionPartner1, refFlat_summary, 1)
         get_bkp_info(sv.fusionPartner2, refFlat_summary, 2)
+        sv.bkpsites = get_bkp_note(sv.fusionPartner1, sv.fusionPartner2)
         note1 = sv.fusionPartner1.gene + " " + \
             get_fusion_exon_order(sv.fusionPartner1, 1)
         note2 = sv.fusionPartner2.gene + " " + \
@@ -115,6 +118,8 @@ def get_exons_involved(sv, refFlat_summary):
                  sv.bkp2.gene, sv.bkp2.site)
             return "with breakpoints in %s." % (note1)
         elif sv.isIntragenic:
+            sv.bkpsites = get_bkp_note(sv.annotationPartner1,
+                                       sv.annotationPartner2)
             if not sv.bkp1.exon == sv.bkp2.exon:
                 note1 = "exons %s - %s" % (
                     sv.annotationPartner1.exon,
@@ -123,6 +128,7 @@ def get_exons_involved(sv, refFlat_summary):
                 note1 = "exon %s" % (sv.annotationPartner1.exon)
             return "of %s." % (note1)
         else:
+            sv.bkpsites = get_bkp_note(sv.bkp1, sv.bkp2)
             note1 = sv.bkp1.gene + " " + get_exon_order(sv.bkp1, 1)
             note2 = sv.bkp2.gene + " " + get_exon_order(sv.bkp2, 2)
             return "of %s and %s." % (note1, note2)
@@ -131,6 +137,7 @@ def get_exons_involved(sv, refFlat_summary):
         if sv.svtype == "TRANSLOCATION":
             note1 = "with a breakpoint in %s" % (sv.bkp1.site)
         else:
+            sv.bkpsites = get_bkp_note(sv.bkp1, None)
             note1 = "of " + get_exon_order(sv.bkp1, 1)
         return "%s." % (note1)
     else:
@@ -138,6 +145,7 @@ def get_exons_involved(sv, refFlat_summary):
         if sv.svtype == "TRANSLOCATION":
             note1 = "with a breakpoint in %s" % (sv.bkp2.site)
         else:
+            sv.bkpsites = get_bkp_note(None, sv.bkp2)
             note1 = "of " + get_exon_order(sv.bkp2, 2)
         return "%s." % (note1)
     return
@@ -206,6 +214,7 @@ def get_prefix(sv):
     else:
         prefix += str(sv.annotation.split(":")[0]) + \
             " is a " + sv.svtype.lower() + " "
+    prefix = re.sub(r' \(NM_[0-9]+\)', "", prefix, count=2)
     return prefix
 
 
@@ -249,14 +258,14 @@ def functional_significance(sv):
           (sv.bkp2.isPanel and sv.bkp2.isTumourSuppressor))):
         return ""
     else:
-        return " The functional significance is undetermined."
+        return " Functional significance is undetermined."
 
 
-def special_cases(sv, Note):
+def special_cases(sv):
     special_case_notes = {
         'KDD': 'Note: The EGFR rearrangement is a kinase domain duplication (KDD).',
         'vIII': 'Note: The EGFR rearrangement is a vIII variant.',
-        'CTD': 'Note: The EGFR rearrangement is a CTD variant.',
+        'CTD': 'Note: The EGFR rearrangement is a C-terminal deletion (CTD) variant.',
         'ERG': ' The structural variant involves the ERG non-canonical transcript (NM_004449).'
     }
     if sv.annotation.startswith("EGFR (NM_005228) rearrangement:"):
@@ -274,36 +283,62 @@ def special_cases(sv, Note):
                 sv.svtype == "DUPLICATION":
             return special_case_notes['KDD']
         else:
-            return Note
+            return sv.Note
     elif (sv.bkp1.transcript == "NM_004449" and sv.bkp1.isCoding) or \
             (sv.bkp2.transcript == "NM_004449" and sv.bkp2.isCoding):
-        return Note + special_case_notes['ERG']
+        return sv.Note + special_case_notes['ERG']
     else:
-        return Note
+        return sv.Note
 
 
 def get_notes(sv, refFlat_summary, kinase_annotation):
-    prefix = get_prefix(sv)
-    prefix = re.sub(r' \(NM_[0-9]+\)', "", prefix, count=2)
-    Note = prefix + get_exons_involved(sv, refFlat_summary)
+    sv.prefix = get_prefix(sv)
+    sv.exons = get_exons_involved(sv, refFlat_summary)
     if sv.isFusion:
-        Note += get_misc_notes(sv, kinase_annotation)
-    Note += functional_significance(sv)
-    position = get_position(sv, Note, prefix)
-    Note = special_cases(sv, Note)
+        sv.misc = get_misc_notes(sv, kinase_annotation)
+    else:
+        sv.misc = ""
+    sv.sig = (functional_significance(sv) or "")
+    sv.Note = "".join([sv.prefix, sv.exons, \
+        sv.bkpsites, sv.misc, sv.sig])
+    position = get_position(sv)
+    Note = special_cases(sv)
     return Note, position
 
 
-def get_position(sv, Note, prefix):
-    note_local = Note.split(".")[0]
+def get_bkp_note(b1=None, b2=None):
+    if isinstance(b1, bkp) and b1.site.startswith("exon") and \
+            isinstance(b2, bkp) and b2.site.startswith("exon"):
+        if b1.gene == b2.gene:
+            if b1.site == b2.site:
+                return "The breakpoints are within %s." % \
+                    (b1.site)
+            else:
+                return "The breakpoints are within %s and %s." % \
+                    (b1.site, b2.site)
+        else:
+            return "The breakpoints are within %s %s and %s %s." % \
+                (b1.gene, b1.site, b2.gene, b2.site)
+    elif isinstance(b1, bkp) and b1.site.startswith("exon"):
+        return "One of the breakpoints is within %s." % \
+            (b1.site)
+    elif isinstance(b2, bkp) and b2.site.startswith("exon"):
+        return "One of the breakpoints is within %s." % \
+            (b2.site)
+    else:
+        return ""
+
+
+def get_position(sv):
+    note_local = sv.Note.split(".")[0]
     if sv.isFusion:
-        return "%s exon %s to %s exon %s" % \
+        position = "%s exon %s to %s exon %s" % \
             (sv.fusionPartner1.gene, sv.fusionPartner1.exon,
              sv.fusionPartner2.gene, sv.fusionPartner2.exon)
     else:
         position = re.sub(
-            str(prefix), "", note_local, count=1)
+            str(sv.prefix), "", note_local, count=1)
         position = re.sub(
             r'\bof \b|\binvolves \b|\bwith breakpoints in \b|\bwith a breakpoint in \b', "",
             position, count=1)
-        return position
+    return position
