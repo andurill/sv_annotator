@@ -137,11 +137,12 @@ class sv(object):
             self.isIntragenic = False
 
         # Fusion variables
-        if self.description.startswith("Protein Fusion:") and \
-                self.bkp1.isCoding and self.bkp2.isCoding:
+        if (self.description.startswith("Protein Fusion:") or
+            self.description.startswith("Transcript Fusion:")) and
+        self.bkp1.isCoding and self.bkp2.isCoding:
             self.isFusion = True
             s = self.description
-            self.fusionGene = s[s.find("{")+1:s.find("}")]
+            self.fusionGene = s[s.find("{")+1: s.find("}")]
             # check if fusion is defined in the correct format Gene1:Gene2
             try:
                 self.fusionPartner1, self.fusionPartner2 = self.fusionGene.split(
@@ -342,8 +343,8 @@ def get_cdna_pos(bkp):
     # get request max twice to VEP for annotation
     request = make_get_request(query)
     if not request.ok:
-        #rx = re.compile("\([A|C|G|T]\)")
-        #actual_ref = rx.findall(request.text)
+        # rx = re.compile("\([A|C|G|T]\)")
+        # actual_ref = rx.findall(request.text)
         s = request.text
         actual_ref = s[s.find("(")+1:s.find(")")]
         if actual_ref not in ["A", "C", "G", "T"] or \
@@ -389,7 +390,7 @@ def make_get_request(query):
         request = requests.get(
             server+ext, headers={"Content-Type": "application/json"})
     except requests.exceptions.RequestException as e:
-        #raise e
+        # raise e
         warnings.warn("Error in querying vep for " + str(query) +
                       "Error: " + str(e))
     return request
