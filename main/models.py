@@ -130,16 +130,17 @@ class sv(object):
         else:
             raise BothBreakpointsNoncoding()
         # Is SV intragenic?
-        if self.bkp1.gene == self.bkp2.gene and \
-                self.bkp1.isCoding and self.bkp2.isCoding:
+        if all([self.bkp1.gene == self.bkp2.gene,
+                self.bkp1.transcript == self.bkp2.transcript,
+                self.bkp1.isCoding, self.bkp2.isCoding]):
             self.isIntragenic = True
         else:
             self.isIntragenic = False
 
         # Fusion variables
-        if (self.description.startswith("Protein Fusion:") or
-            self.description.startswith("Transcript Fusion:")) and
-        self.bkp1.isCoding and self.bkp2.isCoding:
+        if (self.description.startswith("Protein Fusion") or \
+            self.description.startswith("Transcript Fusion")) and \
+                self.bkp1.isCoding and self.bkp2.isCoding:
             self.isFusion = True
             s = self.description
             self.fusionGene = s[s.find("{")+1: s.find("}")]
