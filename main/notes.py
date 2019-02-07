@@ -105,8 +105,8 @@ def get_exons_involved(sv, refFlat_summary):
             return "of %s to %s." % (note1, note2)
     elif all([sv.annotationPartner1.isPanel, sv.annotationPartner2.isPanel,
               sv.annotationPartner1.isCoding, sv.annotationPartner2.isCoding]):
-        get_bkp_info(sv.bkp1, refFlat_summary, 1)
-        get_bkp_info(sv.bkp2, refFlat_summary, 2)
+        get_bkp_info(sv.annotationPartner1, refFlat_summary, 1)
+        get_bkp_info(sv.annotationPartner2, refFlat_summary, 2)
         if sv.svtype == "TRANSLOCATION":
             note1 = "%s %s and %s %s" % \
                 (sv.annotationPartner1.gene, sv.annotationPartner1.site,
