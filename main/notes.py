@@ -103,21 +103,21 @@ def get_exons_involved(sv, refFlat_summary):
             return "%s and %s." % (note1, note2)
         else:
             return "of %s to %s." % (note1, note2)
-    elif sv.bkp1.isPanel and sv.bkp2.isPanel and \
-            sv.bkp1.isCoding and sv.bkp2.isCoding:
+    elif all([sv.annotationPartner1.isPanel, sv.annotationPartner2.isPanel,
+              sv.annotationPartner1.isCoding, sv.annotationPartner2.isCoding]):
         get_bkp_info(sv.bkp1, refFlat_summary, 1)
         get_bkp_info(sv.bkp2, refFlat_summary, 2)
         if sv.svtype == "TRANSLOCATION":
             note1 = "%s %s and %s %s" % \
-                (sv.bkp1.gene, sv.bkp1.site,
-                 sv.bkp2.gene, sv.bkp2.site)
+                (sv.annotationPartner1.gene, sv.annotationPartner1.site,
+                 sv.annotationPartner2.gene, sv.annotationPartner2.site)
             return "with breakpoints in %s." % (note1)
         elif sv.isIntragenic:
             get_bkp_info(sv.annotationPartner1, refFlat_summary, 2)
             get_bkp_info(sv.annotationPartner2, refFlat_summary, 1)
             sv.bkpsites = get_bkpsite_note(sv, sv.annotationPartner1,
                                            sv.annotationPartner2)
-            if not sv.bkp1.exon == sv.bkp2.exon:
+            if not sv.annotationPartner1.exon == sv.annotationPartner2.exon:
                 note1 = "exons %s - %s" % (
                     sv.annotationPartner1.exon,
                     sv.annotationPartner2.exon)
@@ -125,25 +125,25 @@ def get_exons_involved(sv, refFlat_summary):
                 note1 = "exon %s" % (sv.annotationPartner1.exon)
             return "of %s." % (note1)
         else:
-            sv.bkpsites = get_bkpsite_note(sv, sv.bkp1, sv.bkp2)
-            note1 = sv.bkp1.gene + " " + get_exon_order(sv.bkp1, 1)
-            note2 = sv.bkp2.gene + " " + get_exon_order(sv.bkp2, 2)
+            sv.bkpsites = get_bkpsite_note(sv, sv.annotationPartner1, sv.annotationPartner2)
+            note1 = sv.annotationPartner1.gene + " " + get_exon_order(sv.annotationPartner1, 1)
+            note2 = sv.annotationPartner2.gene + " " + get_exon_order(sv.annotationPartner2, 2)
             return "of %s and %s." % (note1, note2)
-    elif sv.bkp1.isPanel and sv.bkp1.isCoding:
-        get_bkp_info(sv.bkp1, refFlat_summary, 1)
+    elif sv.annotationPartner1.isPanel and sv.annotationPartner1.isCoding:
+        get_bkp_info(sv.annotationPartner1, refFlat_summary, 1)
         if sv.svtype == "TRANSLOCATION":
-            note1 = "with a breakpoint in %s" % (sv.bkp1.site)
+            note1 = "with a breakpoint in %s" % (sv.annotationPartner1.site)
         else:
-            sv.bkpsites = get_bkpsite_note(sv, sv.bkp1, None)
-            note1 = "of " + get_exon_order(sv.bkp1, 1)
+            sv.bkpsites = get_bkpsite_note(sv, sv.annotationPartner1, None)
+            note1 = "of " + get_exon_order(sv.annotationPartner1, 1)
         return "%s." % (note1)
     else:
-        get_bkp_info(sv.bkp2, refFlat_summary, 2)
+        get_bkp_info(sv.annotationPartner2, refFlat_summary, 2)
         if sv.svtype == "TRANSLOCATION":
-            note1 = "with a breakpoint in %s" % (sv.bkp2.site)
+            note1 = "with a breakpoint in %s" % (sv.annotationPartner2.site)
         else:
-            sv.bkpsites = get_bkpsite_note(sv, None, sv.bkp2)
-            note1 = "of " + get_exon_order(sv.bkp2, 2)
+            sv.bkpsites = get_bkpsite_note(sv, None, sv.annotationPartner2)
+            note1 = "of " + get_exon_order(sv.annotationPartner2, 2)
         return "%s." % (note1)
     return
 

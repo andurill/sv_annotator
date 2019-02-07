@@ -26,22 +26,24 @@ def get_translocation(sv):
     """
     fusion_type = "rearrangement"
     Annotation = ""
-    if sv.isFusion and sv.bkp1.isCoding and sv.bkp2.isCoding:
+    if sv.isFusion:
         if sv.isKnownFusion is True:
             fusion_type = "fusion"
         Annotation = "%s (%s) - %s (%s) %s: " %\
             (sv.fusionPartner1.gene, sv.fusionPartner1.transcript,
              sv.fusionPartner2.gene, sv.fusionPartner2.transcript, fusion_type)
-    elif sv.bkp1.isPanel and sv.bkp2.isPanel and sv.bkp1.isCoding and sv.bkp2.isCoding:
+    elif all([sv.annotationPartner1.isPanel, sv.annotationPartner2.isPanel,
+              sv.annotationPartner1.isCoding, sv.annotationPartner2.isCoding]):
         Annotation = "%s (%s) - %s (%s) %s: " %\
-            (sv.bkp1.gene, sv.bkp1.transcript,
-             sv.bkp2.gene, sv.bkp2.transcript, fusion_type)
-    elif sv.bkp1.isPanel and sv.bkp1.isCoding:
+            (sv.annotationPartner1.gene, sv.annotationPartner1.transcript,
+             sv.annotationPartner2.gene, sv.annotationPartner2.transcript, fusion_type)
+    elif sv.annotationPartner1.isPanel and sv.annotationPartner1.isCoding:
         Annotation = "%s (%s) %s: " %\
-            (sv.bkp1.gene, sv.bkp1.transcript, fusion_type)
+            (sv.annotationPartner1.gene, sv.annotationPartner1.transcript, fusion_type)
     else:
         Annotation = "%s (%s) %s: " %\
-            (sv.bkp2.gene, sv.bkp2.transcript, fusion_type)
+            (sv.annotationPartner2.gene,
+             sv.annotationPartner2.transcript, fusion_type)
 
     cband1 = get_cytoband(sv.annotationPartner1)
     cband2 = get_cytoband(sv.annotationPartner2)
@@ -71,7 +73,8 @@ def get_other_svs(sv):
         return "%s (%s) - %s (%s) %s: %s:%s_%s:%s%s" %\
             (gene1, tx1, gene2, tx2, fusion_type,
              cdna1, gene1, cdna2, gene2, svtype)
-    elif sv.bkp1.isPanel and sv.bkp2.isPanel and sv.bkp1.isCoding and sv.bkp2.isCoding:
+    elif all([sv.annotationPartner1.isPanel, sv.annotationPartner2.isPanel,
+              sv.annotationPartner1.isCoding, sv.annotationPartner2.isCoding]):
         gene1, tx1, cdna1 = sv.annotationPartner1.gene, \
             sv.annotationPartner1.transcript, sv.annotationPartner1.cdna
         gene2, tx2, cdna2 = sv.annotationPartner2.gene, \
@@ -85,19 +88,23 @@ def get_other_svs(sv):
                 (gene1, tx1, gene2, tx2, fusion_type,
                  cdna1, gene1, cdna2, gene2, svtype)
             return Annotation
-    elif sv.bkp1.isPanel and sv.bkp1.isCoding:
-        gene1, tx1, cdna1 = sv.bkp1.gene, sv.bkp1.transcript, sv.bkp1.cdna
-        cdna2 = sv.bkp2.cdna
+    elif sv.annotationPartner1.isPanel and sv.annotationPartner1.isCoding:
+        gene1, tx1, cdna1 = sv.annotationPartner1.gene,
+        sv.annotationPartner1.transcript, sv.annotationPartner1.cdna
+        cdna2 = sv.annotationPartner2.cdna
         Annotation = "%s (%s) %s: %s:%s_%s%s" %\
             (gene1, tx1, fusion_type, cdna1, gene1,
-             "chr" + sv.bkp2.chrom + ":g." + str(sv.bkp2.pos), svtype)
+             "chr" + sv.annotationPartner2.chrom + ":g." +
+             str(sv.annotationPartner2.pos), svtype)
         return Annotation
     else:
-        gene2, tx2, cdna2 = sv.bkp2.gene, sv.bkp2.transcript, sv.bkp2.cdna
-        cdna1 = sv.bkp1.cdna
+        gene2, tx2, cdna2 = sv.annotationPartner2.gene,
+        sv.annotationPartner2.transcript, sv.annotationPartner2.cdna
+        cdna1 = sv.annotationPartner1.cdna
         Annotation = "%s (%s) %s: %s:%s_%s%s" %\
             (gene2, tx2, fusion_type, cdna2, gene2,
-             "chr" + sv.bkp1.chrom + ":g." + str(sv.bkp1.pos), svtype)
+             "chr" + sv.annotationPartner1.chrom + ":g." +
+             str(sv.annotationPartner1.pos), svtype)
         return Annotation
 
 
