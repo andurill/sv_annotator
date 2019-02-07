@@ -31,6 +31,7 @@ refFlat_summary = pd.read_csv(
 
 
 #Created: 28-Oct-2018
+# Includes cv6 genes and intronic regions tartgetted for SV
 IMPACTv6_targets = {
     'ABL1': 1,
     'ACVR1': 1,
