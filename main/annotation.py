@@ -89,8 +89,8 @@ def get_other_svs(sv):
                  cdna1, gene1, cdna2, gene2, svtype)
             return Annotation
     elif sv.annotationPartner1.isPanel and sv.annotationPartner1.isCoding:
-        gene1, tx1, cdna1 = sv.annotationPartner1.gene,
-        sv.annotationPartner1.transcript, sv.annotationPartner1.cdna
+        gene1, tx1, cdna1 = sv.annotationPartner1.gene, \
+            sv.annotationPartner1.transcript, sv.annotationPartner1.cdna
         cdna2 = sv.annotationPartner2.cdna
         Annotation = "%s (%s) %s: %s:%s_%s%s" %\
             (gene1, tx1, fusion_type, cdna1, gene1,
@@ -98,8 +98,8 @@ def get_other_svs(sv):
              str(sv.annotationPartner2.pos), svtype)
         return Annotation
     else:
-        gene2, tx2, cdna2 = sv.annotationPartner2.gene,
-        sv.annotationPartner2.transcript, sv.annotationPartner2.cdna
+        gene2, tx2, cdna2 = sv.annotationPartner2.gene, \
+            sv.annotationPartner2.transcript, sv.annotationPartner2.cdna
         cdna1 = sv.annotationPartner1.cdna
         Annotation = "%s (%s) %s: %s:%s_%s%s" %\
             (gene2, tx2, fusion_type, cdna2, gene2,
