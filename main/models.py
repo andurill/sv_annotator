@@ -3,7 +3,6 @@ import os
 import sys
 import logging
 import requests
-import warnings
 import pandas as pd
 
 logger = logging.getLogger('basic_logger')
