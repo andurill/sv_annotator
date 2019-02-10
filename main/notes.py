@@ -3,16 +3,19 @@
 import os
 import sys
 import re
+import logging
 import warnings
 import pandas as pd
 import numpy as np
 from main.models import bkp
 
+logger = logging.getLogger('basic_logger')
+
 
 def get_bkp_info(bkp, refFlat_summary, orientation, fusion=0):
     """
-    Get exon and intron features for a breakpoint object.
-    bkp -> None
+    Get exon and intron features for a breakpoint object
+    bkp, df, int, int -> None
     """
     try:
         bkp_dict = refFlat_summary[
@@ -62,11 +65,15 @@ def get_bkp_info(bkp, refFlat_summary, orientation, fusion=0):
     elif bkp.transcript == "NM_004449":
         bkp.exon = "4"
         bkp.site = "intron 3"
-        warnings.warn("Breakpoint attributes are estimated for %s:%s. Manual review required!!!" % (
-            bkp.chrom, bkp.pos), Warning)
+        logger.warning("Breakpoint attributes are estimated for %s:%s. Manual review required" % (
+            bkp.chrom, bkp.pos))
 
 
 def get_exon_order(bkp, order):
+    """
+    Determine gene order for notes
+    bkp, int -> str
+    """
     if any([(bkp.strand == "+" and order == 1),
             (bkp.strand == "-" and order == 2),
             (order == 4)]):
@@ -89,7 +96,7 @@ def get_exons_involved(sv, refFlat_summary):
     """
     Get exons involved in an sv object based on the variant type
     and the breakpoint sites
-    sv -> None
+    (sv, df) -> None
     """
     sv.bkpsites = ""
     if sv.isFusion:
@@ -159,11 +166,19 @@ def get_exons_involved(sv, refFlat_summary):
 
 
 def getOverlap(a, b):
+    """
+    Determine if two intervals overlap
+    tuple, tuple -> int
+    """
     # return max(0, min(a[1], b[1]) - max(a[0], b[0]))
     return min(a[1], b[1]) - max(a[0], b[0])
 
 
 def get_kinase_annotation(bkp, kinase_annotation):
+    """
+    Get kinase domain annotation for protein kinases in fusion SVs
+    bkp, df -> (str or None)
+    """
     bkp.isEntireKinase = False
     kinase_interval = []
     try:
@@ -173,15 +188,9 @@ def get_kinase_annotation(bkp, kinase_annotation):
         kinase_interval = kinase_annotation[
             (kinase_annotation['HUGO'].values == bkp.gene)].\
             iloc[0, [1, 4]].values.tolist()
-    except IndexError:
-        pass
-        # no values found
-    except NameError:
-        pass
-        # not fusion
-    except ValueError:
-        pass
-        # what
+    except (IndexError, NameError, ValueError):
+        logger.warning(
+            "Cannot find kinase domain information for %s" % (bkp.gene))
     if kinase_interval:
         interval, kinase_interval = \
             map(lambda x: [int(y) for y in x], (interval, kinase_interval))
@@ -270,6 +279,10 @@ def functional_significance(sv):
 
 
 def special_cases(sv):
+    """
+    Returns a customized note for special cases
+    sv -> str
+    """
     special_case_notes = {
         'KDD': 'The EGFR rearrangement is a kinase domain duplication (KDD) alteration.',
         'vIII': 'The EGFR rearrangement is a vIII alteration.',
@@ -318,6 +331,10 @@ def special_cases(sv):
 
 
 def get_notes(sv, refFlat_summary, kinase_annotation):
+    """
+    Main note function to call relevant helper functions
+    sv, df, df -> tuple
+    """
     sv.prefix = get_prefix(sv)
     sv.exons = get_exons_involved(sv, refFlat_summary)
     if sv.isFusion:
@@ -333,6 +350,10 @@ def get_notes(sv, refFlat_summary, kinase_annotation):
 
 
 def get_bkpsite_note(sv, b1=None, b2=None):
+    """
+    Determine breakpoint details.
+    sv, (None or bkp), (None or bkp) -> str
+    """
     if isinstance(b1, bkp) and b1.site.startswith("exon") and \
             isinstance(b2, bkp) and b2.site.startswith("exon"):
         if b1.gene == b2.gene:
@@ -358,6 +379,10 @@ def get_bkpsite_note(sv, b1=None, b2=None):
 
 
 def get_position(sv):
+    """
+    Derive position string from notes
+    sv -> str
+    """
     note_local = sv.Note.split(".")[0]
     if sv.isFusion:
         position = "%s exon %s to %s exon %s" % \

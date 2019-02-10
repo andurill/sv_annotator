@@ -1,8 +1,11 @@
 #!/usr/bin/env python2
 import os
 import sys
+import logging
 from constants import cb_df
 from models import BreakPointIntergenic
+
+logger = logging.getLogger('basic_logger')
 
 
 def get_variant_annotation(sv):

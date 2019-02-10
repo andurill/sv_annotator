@@ -1,24 +1,12 @@
 #!/usr/bin/env python2
 import os
 import sys
+import logging
 import requests
 import warnings
 import pandas as pd
 
-
-class Message(object):
-    """
-    Class to process and carry-over messages from downstream processes
-    """
-
-    def __init__(self):
-        self.message = ""
-
-    def append(self, message_string):
-        self.message += message_string
-
-    def retrieve(self):
-        return self.message
+logger = logging.getLogger('basic_logger')
 
 
 class bkp(object):
@@ -33,31 +21,25 @@ class bkp(object):
             self.gene = str(gene)
             self.desc = str(desc)
         except TypeError:
-            print(
+            raise Exception(
                 "Could not create a new instance of bkp class due to inappropriate values for parameters.")
-        except:
-            print("Unexpected error:", sys.exc_info()[0])
-            raise
+        except Exception:
+            raise Exception("Unexpected error:", sys.exc_info()[0])
 
     def expand(self, refFlat, target_panel, panelKinase, hotspot, tumourSuppressor):
-        message = ""
         try:
             self.transcript = refFlat[refFlat['Gene'] == self.gene]['Transcripts'].str.split(
                 ",").tolist().pop()
         except IndexError:
             self.transcript = []
-            e = "Cannot find canonical transcript for " +\
-                str(self.gene)
-            message = message + e + ";"
-            warnings.warn(e, Warning)
+            logger.warning("Cannot find canonical transcript for " +\
+                str(self.gene))
 
         try:
             self.transcript, self.cdna = get_cdna_pos(self)
             self.transcript = self.transcript.split(".")[0]
         except Exception as e:
-            raise
-            message += e + ";"
-            warnings.warn(e, Warning)
+            logger.warning(e)
 
         if "(+)" in self.desc:
             self.strand = "+"
@@ -172,14 +154,13 @@ class sv(object):
             self.isFusion = False
             self.isKnownFusion = False
             if self.description.startswith("Protein Fusion:"):
-                message = ""
                 if not self.bkp1.isCoding:
                     message = "coding cDNA annotation cannot be found\
                         for %s %s." % (self.bkp1.gene, self.bkp1.transcript) + ";"
                 elif not self.bkp2.isCoding:
                     message = "coding cDNA annotation cannot be found\
                         for %s %s." % (self.bkp2.gene, self.bkp2.transcript) + ";"
-                warnings.warn(message, Warning)
+                logger.warning(message)
 
         # Annotation variables
         if self.svtype == "TRANSLOCATION":
@@ -205,131 +186,6 @@ class sv(object):
                 self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
         else:
             self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
-
-
-class Error(Exception):
-    '''Base class for other exceptions'''
-    pass
-
-
-class MissingCytoBand(Error):
-    '''Raised when no cytoband was identified for a breakpoint'''
-
-    def __init__(self, bkp):
-        Exception.__init__(self, "No cytobands identified for the breakpoint: " + bkp
-                           )
-
-
-class MultipleCytoBand(Error):
-    '''Raised when multiple cytoband were identified for a breakpoint'''
-
-    def __init__(self):
-        Exception.__init__(
-            self, "Multiple cytobands identified for the breakpoint: " + bkp
-        )
-
-
-class CanonicalTranscriptNotFound(Error):
-    '''Raised when canonical transcript not found'''
-
-    def __init__(self, gene):
-        Exception.__init__(
-            self, "Cannot find a canonical transcript for the gene: " + gene
-        )
-
-
-class IncorrectGenesFormat(Error):
-    '''Raised when gene1 / gene2 format does not match expected'''
-
-    def __init__(self):
-        Exception.__init__(
-            self, "Input genes are not in required format. Should be in 'Gene1 / Gene2' format."
-        )
-
-
-class IncorrectBkpFormat(Error):
-    '''Raised when a bkp format does not match expected'''
-
-    def __init__(self, bkp):
-        Exception.__init__(
-            self, "Format of breakpoint " +
-            str(bkp) + "does not match the required format. Example '7:1234567'"
-        )
-
-
-class IncorrectDescriptionFormat(Error):
-    '''Raised when the input fusion description does not match expected'''
-
-    def __init__(self):
-        Exception.__init__(
-            self, "Format of fusion description does not meet the required format. Example 'Protein Fusion: {FGFR3:TACC3}'"
-        )
-
-
-class GenesNotInPanel(Error):
-    '''Raised when both genes not in panel'''
-
-    def __init__(self):
-        Exception.__init__(
-            self, "Neither of the gene partners is in the target panel."
-        )
-
-
-class FusionGeneConflict(Error):
-    '''Raised when one of the fusion parter does not match either of the input genes'''
-
-    def __init__(self):
-        Exception.__init__(
-            self, "The fusion partner genes do not match the two breakpoint genes."
-        )
-
-
-class cdnaNotFound(Error):
-    '''Raised when vep cannot generate cdna annotation for a breakpoint'''
-
-    def __init__(self, bkp):
-        Exception.__init__(
-            self, "Cannot determine cDNA annotation using vep for the breakpoint: " + bkp
-        )
-
-
-class IncorrectSVInputArguments(Error):
-    '''Raised when the input arguments to sv class in incorrect'''
-
-    def __init__(self):
-        Exception.__init__(
-            self, "The number arguments provided for sv class in correct. It should be a \
-            comma-separater string of 'svtype, bkp1, bkp2, genes, site1, site2, description, connection'."
-        )
-
-
-class BreakPointIntergenic(Error):
-    '''Raised when breakpoint is in an intergenic region'''
-
-    def __init__(self, bkp):
-        Exception.__init__(
-            self, "Breakpoint is is the intergenic region for the breakpont %s:%s." % (
-                bkp.chrom, str(bkp.pos))
-        )
-
-
-class GenomicPosition(Error):
-    '''Raised when breakpoint position cannot be determined in the form of genomic or DNA coordinates'''
-
-    def __init__(self, bkp):
-        Exception.__init__(
-            self, "Genomic position cannot be determined in the form of genomic or DNA for breakpoint %s:%s." % (
-                bkp.chrom, str(bkp.pos))
-        )
-
-
-class BothBreakpointsNoncoding(Error):
-    '''Raised when not even one of the breakpoints is in panel and is in coding region'''
-
-    def __init__(self):
-        Exception.__init__(
-            self, "Atleast one of the breakpoints need to be in target panel and in coding region."
-        )
 
 
 def get_cdna_pos(bkp):
@@ -364,8 +220,8 @@ def get_cdna_pos(bkp):
         result = {}
         # raise Exception(
         #    "Cannot find any cDNA annotations for gene " + bkp.gene)
-        warnings.warn("Cannot find any cDNA annotations for gene " +
-                      bkp.gene, Warning)
+        logger.warning("Cannot find any cDNA annotations for gene " +
+                       bkp.gene)
     if bkp.transcript:
         for tx in bkp.transcript:
             if tx in result:
@@ -415,3 +271,128 @@ def make_query(bkp, dummy_ref):
     dummy_alt = revcomp[dummy_ref]
     query = chrom + ":g." + str(coord) + dummy_ref + ">" + dummy_alt + "?"
     return query
+
+
+class Error(Exception):
+    '''Base class for other exceptions'''
+    pass
+
+
+class MissingCytoBand(Error):
+    '''Raised when no cytoband was identified for a breakpoint'''
+
+    def __init__(self, bkp):
+        Exception.__init__(self, "No cytobands identified for the breakpoint: " + bkp
+                           )
+
+
+class MultipleCytoBand(Error):
+    '''Raised when multiple cytoband were identified for a breakpoint'''
+
+    def __init__(self):
+        Exception.__init__(
+            self, "Multiple cytobands identified for the breakpoint: " + bkp
+        )
+
+
+class CanonicalTranscriptNotFound(Error):
+    '''Raised when canonical transcript not found'''
+
+    def __init__(self, gene):
+        Exception.__init__(
+            self, "Cannot find a canonical transcript for the gene: " + gene
+        )
+
+
+class IncorrectGenesFormat(Error):
+    '''Raised when gene1 / gene2 format does not match expected'''
+
+    def __init__(self):
+        Exception.__init__(
+            self, "Input genes are not in required format. Should be in 'Gene1 / Gene2' format"
+        )
+
+
+class IncorrectBkpFormat(Error):
+    '''Raised when a bkp format does not match expected'''
+
+    def __init__(self, bkp):
+        Exception.__init__(
+            self, "Format of breakpoint " +
+            str(bkp) + "does not match the required format. Example '7:1234567'"
+        )
+
+
+class IncorrectDescriptionFormat(Error):
+    '''Raised when the input fusion description does not match expected'''
+
+    def __init__(self):
+        Exception.__init__(
+            self, "Format of fusion description does not meet the required format. Example 'Protein Fusion: {FGFR3:TACC3}'"
+        )
+
+
+class GenesNotInPanel(Error):
+    '''Raised when both genes not in panel'''
+
+    def __init__(self):
+        Exception.__init__(
+            self, "Neither of the gene partners is in the target panel"
+        )
+
+
+class FusionGeneConflict(Error):
+    '''Raised when one of the fusion parter does not match either of the input genes'''
+
+    def __init__(self):
+        Exception.__init__(
+            self, "The fusion partner genes do not match the two breakpoint genes"
+        )
+
+
+class cdnaNotFound(Error):
+    '''Raised when vep cannot generate cdna annotation for a breakpoint'''
+
+    def __init__(self, bkp):
+        Exception.__init__(
+            self, "Cannot determine cDNA annotation using vep for the breakpoint: " + bkp
+        )
+
+
+class IncorrectSVInputArguments(Error):
+    '''Raised when the input arguments to sv class in incorrect'''
+
+    def __init__(self):
+        Exception.__init__(
+            self, "The number arguments provided for sv class in correct. It should be a \
+            comma-separater string of 'svtype, bkp1, bkp2, genes, site1, site2, description, connection'"
+        )
+
+
+class BreakPointIntergenic(Error):
+    '''Raised when breakpoint is in an intergenic region'''
+
+    def __init__(self, bkp):
+        Exception.__init__(
+            self, "Breakpoint is is the intergenic region for the breakpont %s:%s" % (
+                bkp.chrom, str(bkp.pos))
+        )
+
+
+class GenomicPosition(Error):
+    '''Raised when breakpoint position cannot be determined in the form of genomic or DNA coordinates'''
+
+    def __init__(self, bkp):
+        Exception.__init__(
+            self, "Genomic position cannot be determined in the form of genomic or DNA for breakpoint %s:%s" % (
+                bkp.chrom, str(bkp.pos))
+        )
+
+
+class BothBreakpointsNoncoding(Error):
+    '''Raised when not even one of the breakpoints is in panel and is in coding region'''
+
+    def __init__(self):
+        Exception.__init__(
+            self, "Atleast one of the breakpoints need to be in target panel and in coding region"
+        )
