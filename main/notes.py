@@ -9,7 +9,7 @@ import numpy as np
 from main.models import bkp
 
 
-def get_bkp_info(bkp, refFlat_summary, shift):
+def get_bkp_info(bkp, refFlat_summary, orientation, fusion=0):
     """
     Get exon and intron features for a breakpoint object.
     bkp -> None
@@ -38,21 +38,27 @@ def get_bkp_info(bkp, refFlat_summary, shift):
     if bkp.desc.startswith("Exon "):
         bkp.exon = bkp.desc.split(" ")[1]
         bkp.site = "exon " + str(bkp.exon)
-    elif bkp.desc.startswith("Intron"):
+    elif bkp.desc.startswith("Intron "):
         exon = bkp.desc.split(" ")[5]
-        if "before" in bkp.desc:
-            bkp.intron = str(int(exon) - 1)
-            if shift == 2:
-                bkp.exon = exon
-            else:
-                bkp.exon = str(int(exon) - 1)
-        else:
+        if "after" in bkp.desc:
             bkp.intron = exon
-            if shift == 1:
-                bkp.exon = exon
-            else:
+            if any([fusion == 1 and orientation == 2,
+                    fusion == 0 and bkp.strand == "+" and orientation == 1,
+                    fusion == 0 and bkp.strand == "-" and orientation == 2]):
                 bkp.exon = str(int(exon) + 1)
-        bkp.site = "intron " + str(bkp.intron)
+            else:
+                bkp.exon = exon
+        elif "before" in bkp.desc:
+            bkp.intron = str(int(exon) - 1)
+            if any([fusion == 1 and orientation == 1,
+                    fusion == 0 and bkp.strand == "+" and orientation == 2,
+                    fusion == 0 and bkp.strand == "-" and orientation == 1]):
+                bkp.exon = str(int(exon) - 1)
+            else:
+                bkp.exon = exon
+        else:
+            bkp.exon = exon
+        bkp.site = "intron " + bkp.intron
     elif bkp.transcript == "NM_004449":
         bkp.exon = "4"
         bkp.site = "intron 3"
@@ -87,8 +93,8 @@ def get_exons_involved(sv, refFlat_summary):
     """
     sv.bkpsites = ""
     if sv.isFusion:
-        get_bkp_info(sv.fusionPartner1, refFlat_summary, 1)
-        get_bkp_info(sv.fusionPartner2, refFlat_summary, 2)
+        get_bkp_info(sv.fusionPartner1, refFlat_summary, 1, 1)
+        get_bkp_info(sv.fusionPartner2, refFlat_summary, 2, 1)
         sv.bkpsites = get_bkpsite_note(
             sv, sv.fusionPartner1, sv.fusionPartner2)
         note1 = sv.fusionPartner1.gene + " " + \
@@ -103,18 +109,19 @@ def get_exons_involved(sv, refFlat_summary):
             return "%s and %s." % (note1, note2)
         else:
             return "of %s to %s." % (note1, note2)
-    elif all([sv.annotationPartner1.isPanel, sv.annotationPartner2.isPanel,
-              sv.annotationPartner1.isCoding, sv.annotationPartner2.isCoding]):
-        get_bkp_info(sv.annotationPartner1, refFlat_summary, 1)
-        get_bkp_info(sv.annotationPartner2, refFlat_summary, 2)
+    elif all([sv.bkp1.isPanel, sv.bkp2.isPanel,
+              sv.bkp1.isCoding, sv.bkp2.isCoding]):
+        get_bkp_info(sv.bkp1, refFlat_summary, 1)
+        get_bkp_info(sv.bkp2, refFlat_summary, 2)
         if sv.svtype == "TRANSLOCATION":
             note1 = "%s %s and %s %s" % \
-                (sv.annotationPartner1.gene, sv.annotationPartner1.site,
-                 sv.annotationPartner2.gene, sv.annotationPartner2.site)
+                (sv.bkp1.gene, sv.bkp1.site,
+                 sv.bkp2.gene, sv.bkp2.site)
             return "with breakpoints in %s." % (note1)
         elif sv.isIntragenic:
-            get_bkp_info(sv.annotationPartner1, refFlat_summary, 2)
-            get_bkp_info(sv.annotationPartner2, refFlat_summary, 1)
+            intra1, intra2 = (1, 2) if sv.bkp1.strand == "+" else (2, 1)
+            get_bkp_info(sv.annotationPartner1, refFlat_summary, intra1)
+            get_bkp_info(sv.annotationPartner2, refFlat_summary, intra2)
             sv.bkpsites = get_bkpsite_note(sv, sv.annotationPartner1,
                                            sv.annotationPartner2)
             if not sv.annotationPartner1.exon == sv.annotationPartner2.exon:
@@ -125,25 +132,28 @@ def get_exons_involved(sv, refFlat_summary):
                 note1 = "exon %s" % (sv.annotationPartner1.exon)
             return "of %s." % (note1)
         else:
-            sv.bkpsites = get_bkpsite_note(sv, sv.annotationPartner1, sv.annotationPartner2)
-            note1 = sv.annotationPartner1.gene + " " + get_exon_order(sv.annotationPartner1, 1)
-            note2 = sv.annotationPartner2.gene + " " + get_exon_order(sv.annotationPartner2, 2)
+            sv.bkpsites = get_bkpsite_note(
+                sv, sv.bkp1, sv.bkp2)
+            note1 = sv.bkp1.gene + " " + \
+                get_exon_order(sv.bkp1, 1)
+            note2 = sv.bkp2.gene + " " + \
+                get_exon_order(sv.bkp2, 2)
             return "of %s and %s." % (note1, note2)
-    elif sv.annotationPartner1.isPanel and sv.annotationPartner1.isCoding:
-        get_bkp_info(sv.annotationPartner1, refFlat_summary, 1)
+    elif sv.bkp1.isPanel and sv.bkp1.isCoding:
+        get_bkp_info(sv.bkp1, refFlat_summary, 1)
         if sv.svtype == "TRANSLOCATION":
-            note1 = "with a breakpoint in %s" % (sv.annotationPartner1.site)
+            note1 = "with a breakpoint in %s" % (sv.bkp1.site)
         else:
-            sv.bkpsites = get_bkpsite_note(sv, sv.annotationPartner1, None)
-            note1 = "of " + get_exon_order(sv.annotationPartner1, 1)
+            sv.bkpsites = get_bkpsite_note(sv, sv.bkp1, None)
+            note1 = "of " + get_exon_order(sv.bkp1, 1)
         return "%s." % (note1)
     else:
-        get_bkp_info(sv.annotationPartner2, refFlat_summary, 2)
+        get_bkp_info(sv.bkp2, refFlat_summary, 2)
         if sv.svtype == "TRANSLOCATION":
-            note1 = "with a breakpoint in %s" % (sv.annotationPartner2.site)
+            note1 = "with a breakpoint in %s" % (sv.bkp2.site)
         else:
-            sv.bkpsites = get_bkpsite_note(sv, None, sv.annotationPartner2)
-            note1 = "of " + get_exon_order(sv.annotationPartner2, 2)
+            sv.bkpsites = get_bkpsite_note(sv, None, sv.bkp2)
+            note1 = "of " + get_exon_order(sv.bkp2, 2)
         return "%s." % (note1)
     return
 
@@ -261,24 +271,22 @@ def functional_significance(sv):
 
 def special_cases(sv):
     special_case_notes = {
-        'KDD': 'Note: The EGFR rearrangement is a kinase domain duplication (KDD) alteration.',
-        'vIII': 'Note: The EGFR rearrangement is a vIII alteration.',
-        'CTD': 'Note: The EGFR rearrangement is a C-terminal domain (CTD) alteration.',
-        'ERG': ' The structural variant involves the ERG non-canonical transcript (NM_004449).'
+        'KDD': 'The EGFR rearrangement is a kinase domain duplication (KDD) alteration.',
+        'vIII': 'The EGFR rearrangement is a vIII alteration.',
+        'CTD': 'The EGFR rearrangement is a C-terminal domain (CTD) alteration.',
+        'ERG': 'The structural variant involves the ERG non-canonical transcript (NM_004449).'
     }
-    if sv.annotation.startswith("EGFR (NM_005228) rearrangement:") and \
-            re.search(r"exons \d+ - \d+", sv.Note):
-        se = re.search(r"exons \d+ - \d+", sv.Note)
-        exon1, exon2 = se.group().replace("exons ","").split(" - ")
+    se = re.search(r"exons \d+ - \d+", sv.Note)
+    if sv.annotation.startswith("EGFR (NM_005228) rearrangement:") and se.group():
+        exon1, exon2 = se.group().replace("exons ", "").split(" - ")
         if exon1 == "2" and exon2 == "7":
             return special_case_notes['vIII']
-        elif exon1 in ("25", "26", "27", "28") and \
-                exon2 in ("25", "26", "27", "28") and \
-                sv.svtype == "DELETION":
+        elif all([exon1 in ("25", "26", "27", "28"),
+                  exon2 in ("25", "26", "27", "28"),
+                  sv.svtype == "DELETION"]):
             return special_case_notes['CTD']
-        elif exon1 == "18" and \
-            exon2 in ("25", "26") and \
-                sv.svtype == "DUPLICATION":
+        elif all([exon1 == "18", exon2 in ("25", "26"),
+                  sv.svtype == "DUPLICATION"]):
             return special_case_notes['KDD']
         else:
             return sv.Note
@@ -286,9 +294,9 @@ def special_cases(sv):
           sv.annotationPartner1.isCoding) or \
             (sv.annotationPartner2.transcript == "NM_004449" and
                 sv.annotationPartner2.isCoding):
-        return sv.Note + special_case_notes['ERG']
-    elif sv.annotationPartner1.gene == "CDKN2A" or \
-            sv.annotationPartner2.gene == "CDKN2A":
+        return sv.Note + " " + special_case_notes['ERG']
+    elif "CDKN2A" in \
+            (sv.annotationPartner1.gene, sv.annotationPartner2.gene):
         warnings.warn(
             "Manual review required for variants involving CDKN2A!!!", Warning)
         cdkn2a_tx = filter(lambda x: len(x) > 0,
