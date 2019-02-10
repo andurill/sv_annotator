@@ -4,7 +4,6 @@ import os
 import sys
 import re
 import logging
-import warnings
 import pandas as pd
 import numpy as np
 from main.models import bkp
@@ -310,8 +309,8 @@ def special_cases(sv):
         return sv.Note + " " + special_case_notes['ERG']
     elif "CDKN2A" in \
             (sv.annotationPartner1.gene, sv.annotationPartner2.gene):
-        warnings.warn(
-            "Manual review required for variants involving CDKN2A!!!", Warning)
+        logger.warning(
+            "Manual review required for variants involving CDKN2A!!!")
         cdkn2a_tx = filter(lambda x: len(x) > 0,
                            set([sv.annotationPartner1.transcript,
                                 sv.annotationPartner2.transcript]))
