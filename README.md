@@ -24,8 +24,10 @@ OncoKB APIs - https://oncokb.org/api/v1/swagger-ui.html
 
 Datasets:
 ftp://ftp.ncbi.nih.gov/genomes/MapView/Homo_sapiens/objects/BUILD.37.3/initial_release/ideogram_9606_GCF_000001305.13_850_V1
+
 https://github.com/genome-nexus/genome-nexus-importer/blob/master/data/ensembl_biomart_pfam_grch37.p13.txt
-refFlat.canonical_all_coding_exons_aa.interval_list
+
+
 Canonical transcript list (provided in this repo for all refseq coding genes) - refFlat.canonical_all_coding_exons_aa.interval_list
 
 ## Tests
