@@ -46,7 +46,6 @@ def get_bkp_info(bkp, refFlat_summary, orientation, fusion=0):
             bkp.variantSite1, bkp.variantSite2 = bkp.startpos, bkp.pos
     elif bkp.desc.startswith("Intron "):
         exon = bkp.desc.split(" ")[5]
-        bkp.site = "intron " + bkp.intron
         if "after" in bkp.desc:
             bkp.intron = exon
             if get_bkp_type(bkp, fusion, orientation) == 1:
@@ -63,6 +62,7 @@ def get_bkp_info(bkp, refFlat_summary, orientation, fusion=0):
             else:
                 bkp.exon, bkp.variantSite1, bkp.variantSite2 = \
                     exon, bkp.pos, bkp.stoppos
+        bkp.site = "intron " + bkp.intron
     elif bkp.transcript == "NM_004449" and fusion == 1:
         bkp.exon, bkp.site, bkp.variantSite1, bkp.variantSite2 = \
             "4", "intron 3", bkp.pos, bkp.stoppos
@@ -282,6 +282,9 @@ def get_misc_notes(sv):
     fusion variants only
     sv -> None
     """
+    if sv.svtype == "TRANSLOCATION" and not sv.isFusion:
+        sv.misc = ""
+        return
     prefix = \
         "The fusion" if sv.isFusion else "The rearrangement"
     misc_note, frame_note = [None]*2
@@ -375,18 +378,18 @@ def special_cases(sv):
         if re.search(r"exons \d+ - \d+", sv.Note):
             exon1, exon2 = re.search(
                 r"exons \d+ - \d+", sv.Note).group().replace("exons ", "").split(" - ")
-            if exon1 == "2" and exon2 == "7":
+            if all([exon1 == "2", exon2 == "7", sv.svtype == "DUPLICATION"]):
                 custom_note = special_case_notes['vIII']
             elif all([exon1 in ("25", "26", "27"),
-                      exon2 in ("27", "28"), sv.svtype == "DELETION"]):
+                      exon2 in ("27", "28"), sv.svtype != "DUPLICATION"]):
                 custom_note = special_case_notes['CTD']
             elif all([exon1 == "18", exon2 in ("25", "26"),
                       sv.svtype == "DUPLICATION"]):
                 custom_note = special_case_notes['KDD']
         elif re.search(r"exon \d+", sv.Note):
             exon = re.search(
-                r"exon \d+", sv.Note).group().replace("exons ", "")
-            if exon == "27":
+                r"exon \d+", sv.Note).group().replace("exon ", "")
+            if exon == "27" and sv.svtype != "DUPLICATION":
                 custom_note = special_case_notes['CTD']
     elif (sv.annotationPartner1.transcript == "NM_004449" and
           sv.annotationPartner1.isCoding) or \
