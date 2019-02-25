@@ -3,7 +3,6 @@ import os
 import sys
 import logging
 import requests
-import warnings
 import pandas as pd
 
 logger = logging.getLogger('basic_logger')
@@ -26,20 +25,24 @@ class bkp(object):
         except Exception:
             raise Exception("Unexpected error:", sys.exc_info()[0])
 
-    def expand(self, refFlat, target_panel, panelKinase, hotspot, tumourSuppressor):
-        try:
-            self.transcript = refFlat[refFlat['Gene'] == self.gene]['Transcripts'].str.split(
-                ",").tolist().pop()
-        except IndexError:
-            self.transcript = []
+    def expand(self, transcript_reference, kinase_annotation, hotspot, tumourSuppressor):
+        reference = transcript_reference[transcript_reference['Gene']
+                             == self.gene].to_dict('list')
+        self.transcript = reference['Lookup_Transcript'] or None
+        if not self.transcript:
             logger.warning("Cannot find canonical transcript for " +\
                 str(self.gene))
-
-        try:
-            self.transcript, self.cdna = get_cdna_pos(self)
-            self.transcript = self.transcript.split(".")[0]
-        except Exception as e:
-            logger.warning(e)
+            self.cdna = "chr" + self.chrom + ":g." + str(self.pos)
+        else:
+            try:
+                self.transcript, self.cdna = get_cdna_pos(self)
+                #self.transcript = self.transcript.split(".")[0]
+                #if self.transcript == "ENST00000331340":
+                #    self.transcript = "NM_006060"
+                self.transcript = dict(zip(reference['Lookup_Transcript'], \
+                    reference['Reported_Transcript']))[self.transcript]
+            except Exception as e:
+                logger.warning(e)
 
         if "(+)" in self.desc:
             self.strand = "+"
@@ -53,24 +56,27 @@ class bkp(object):
             self.isCoding = True
         else:
             self.isCoding = False
+        
+        self.isPanel = False
+        try:
+            if set(reference['IsPanel']).pop() == 1:
+                self.isPanel = True
+        except KeyError:
+            logger.warning(
+                "%s not presnt in the reference canonical transcript file." % (self.gene))
 
-        if self.gene in target_panel:
-            self.isPanel = True
-        else:
-            self.isPanel = False
-
-        if self.gene in tumourSuppressor and \
-                self.isPanel:
+        if all([self.gene in tumourSuppressor,
+                self.isPanel, self.isCoding]):
             self.isTumourSuppressor = True
         else:
             self.isTumourSuppressor = False
 
-        if self.gene in hotspot:
+        if self.gene in hotspot and self.isCoding:
             self.isHotspot = True
         else:
             self.isHotspot = False
 
-        if self.gene in panelKinase:
+        if self.gene in kinase_annotation['HUGO'].tolist() and self.isCoding:
             self.isKinase = True
         else:
             self.isKinase = False
@@ -95,12 +101,12 @@ class sv(object):
             raise Exception(
                 "Could not create a new instance of sv class due to incorrect format of arguments.")
 
-    def expand(self, refFlat, target_panel, panelKinase, hotspot, tumourSuppressor, oncoKb):
+    def expand(self, transcript_reference, kinase_annotation, hotspot, tumourSuppressor, oncoKb):
         self.bkp1 = bkp(self.chr1, self.pos1, self.gene1, self.site1)
         self.bkp2 = bkp(self.chr2, self.pos2, self.gene2, self.site2)
-        self.bkp1.expand(refFlat, target_panel, panelKinase,
+        self.bkp1.expand(transcript_reference, kinase_annotation,
                          hotspot, tumourSuppressor)
-        self.bkp2.expand(refFlat, target_panel, panelKinase,
+        self.bkp2.expand(transcript_reference, kinase_annotation,
                          hotspot, tumourSuppressor)
 
         # Define key variables
@@ -121,7 +127,7 @@ class sv(object):
             self.isIntragenic = False
 
         # Fusion variables
-        if (self.description.startswith("Protein Fusion") or \
+        if (self.description.startswith("Protein Fusion") or
             self.description.startswith("Transcript Fusion")) and \
                 self.bkp1.isCoding and self.bkp2.isCoding:
             self.isFusion = True
@@ -155,37 +161,23 @@ class sv(object):
             self.isKnownFusion = False
             if self.description.startswith("Protein Fusion:"):
                 if not self.bkp1.isCoding:
-                    message = "coding cDNA annotation cannot be found\
-                        for %s %s." % (self.bkp1.gene, self.bkp1.transcript) + ";"
+                    message = "coding cDNA annotation cannot be found for %s %s." \
+                        % (self.bkp1.gene, self.bkp1.transcript)
                 elif not self.bkp2.isCoding:
-                    message = "coding cDNA annotation cannot be found\
-                        for %s %s." % (self.bkp2.gene, self.bkp2.transcript) + ";"
+                    message = "coding cDNA annotation cannot be found for %s %s." \
+                        % (self.bkp2.gene, self.bkp2.transcript)
                 logger.warning(message)
 
         # Annotation variables
-        if self.svtype == "TRANSLOCATION":
-            if self.bkp1.chrom.isdigit() and self.bkp2.chrom.isdigit():
-                if int(self.bkp1.chrom) < int(self.bkp2.chrom):
-                    self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
-                else:
-                    self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
-            elif str(self.bkp1.chrom) == "X":
-                self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
-            elif str(self.bkp2.chrom) == "X":
-                self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
-            elif str(self.bkp1.chrom) == "Y":
-                self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
-            else:
-                self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
-        elif self.isFusion and self.bkp1.isCoding and self.bkp2.isCoding:
-            self.annotationPartner1, self.annotationPartner2 = self.fusionPartner1, self.fusionPartner2
-        elif self.isIntragenic:
-            if self.bkp1.strand == "+":
-                self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
-            else:
-                self.annotationPartner1, self.annotationPartner2 = self.bkp2, self.bkp1
-        else:
-            self.annotationPartner1, self.annotationPartner2 = self.bkp1, self.bkp2
+        self.annotationPartner1, self.annotationPartner2= self.bkp1, self.bkp2
+        if any([self.svtype == "TRANSLOCATION" and \
+                any([self.bkp1.chrom.isdigit() and self.bkp2.chrom.isdigit() and \
+                     int(self.bkp1.chrom) > int(self.bkp2.chrom),
+                     str(self.bkp1.chrom) == "X", str(self.bkp1.chrom) == "Y"]),
+                self.isIntragenic and self.bkp1.strand == "-"]):
+                self.annotationPartner1, self.annotationPartner2= self.bkp2, self.bkp1
+        elif all([self.isFusion, self.bkp1.isCoding, self.bkp2.isCoding]):
+            self.annotationPartner1, self.annotationPartner2= self.fusionPartner1, self.fusionPartner2
 
 
 def get_cdna_pos(bkp):
@@ -196,13 +188,11 @@ def get_cdna_pos(bkp):
     """
     dummy_ref = "C"
     query = make_query(bkp, dummy_ref)
-    cdna, tx = [""]*2
+    cdna = None
 
     # get request max twice to VEP for annotation
     request = make_get_request(query)
     if not request.ok:
-        # rx = re.compile("\([A|C|G|T]\)")
-        # actual_ref = rx.findall(request.text)
         s = request.text
         actual_ref = s[s.find("(")+1:s.find(")")]
         if actual_ref not in ["A", "C", "G", "T"] or \
@@ -218,21 +208,18 @@ def get_cdna_pos(bkp):
         result = dict(str(s).split(':', 1) for s in decoded[0]['hgvsc'])
     except KeyError:
         result = {}
-        # raise Exception(
-        #    "Cannot find any cDNA annotations for gene " + bkp.gene)
         logger.warning("Cannot find any cDNA annotations for gene " +
                        bkp.gene)
-    if bkp.transcript:
-        for tx in bkp.transcript:
-            if tx in result:
-                cdna = result[tx]
-                if cdna.startswith("c.-") or \
-                        cdna.startswith("c.*"):
-                    cdna = ""
-                else:
-                    cdna = cdna[:-3]
-                    break
-    if cdna == "":
+    for tx in bkp.transcript:
+        if tx in result:
+            query_cdna = result[tx]
+            if query_cdna.startswith("c.-") or \
+                    query_cdna.startswith("c.*"):
+                pass
+            else:
+                cdna = query_cdna[:-3]
+                break
+    if not cdna:
         cdna = "chr" + bkp.chrom + ":g." + str(bkp.pos)
     return tx, cdna
 
