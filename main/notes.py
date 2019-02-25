@@ -41,41 +41,34 @@ def get_bkp_info(bkp, refFlat_summary, orientation, fusion=0):
         bkp.exon = bkp.desc.split(" ")[1]
         bkp.site = "exon " + str(bkp.exon)
         if get_bkp_type(bkp, fusion, orientation) == 1:
-            bkp.variantSite1 = bkp.pos
-            bkp.variantSite2 = bkp.stoppos
+            bkp.variantSite1, bkp.variantSite2 = bkp.pos, bkp.stoppos
         else:
-            bkp.variantSite1 = bkp.startpos
-            bkp.variantSite2 = bkp.pos
+            bkp.variantSite1, bkp.variantSite2 = bkp.startpos, bkp.pos
     elif bkp.desc.startswith("Intron "):
         exon = bkp.desc.split(" ")[5]
+        bkp.site = "intron " + bkp.intron
         if "after" in bkp.desc:
             bkp.intron = exon
             if get_bkp_type(bkp, fusion, orientation) == 1:
-                bkp.exon = str(int(exon) + 1)
-                bkp.variantSite1 = bkp.pos
-                bkp.variantSite2 = bkp.stoppos
+                bkp.exon, bkp.variantSite1, bkp.variantSite2 = \
+                    str(int(exon) + 1), bkp.pos, bkp.stoppos
             else:
-                bkp.exon = exon
-                bkp.variantSite1 = bkp.startpos
-                bkp.variantSite2 = bkp.pos
+                bkp.exon, bkp.variantSite1, bkp.variantSite2 = \
+                    exon, bkp.startpos, bkp.pos
         elif "before" in bkp.desc:
             bkp.intron = str(int(exon) - 1)
             if get_bkp_type(bkp, fusion, orientation) == 2:
-                bkp.exon = str(int(exon) - 1)
-                bkp.variantSite1 = bkp.startpos
-                bkp.variantSite2 = bkp.pos
+                bkp.exon, bkp.variantSite1, bkp.variantSite2 = \
+                    str(int(exon) - 1), bkp.startpos, bkp.pos
             else:
-                bkp.exon = exon
-                bkp.variantSite1 = bkp.pos
-                bkp.variantSite2 = bkp.stoppos
-        #else:
-        #    bkp.exon = exon
-        bkp.site = "intron " + bkp.intron
-    elif bkp.transcript == "NM_004449":
-        bkp.exon = "4"
-        bkp.site = "intron 3"
-        logger.warning("Breakpoint attributes are estimated for %s:%s. Manual review required" % (
-            bkp.chrom, bkp.pos))
+                bkp.exon, bkp.variantSite1, bkp.variantSite2 = \
+                    exon, bkp.pos, bkp.stoppos
+    elif bkp.transcript == "NM_004449" and fusion == 1:
+        bkp.exon, bkp.site, bkp.variantSite1, bkp.variantSite2 = \
+            "4", "intron 3", bkp.pos, bkp.stoppos
+        logger.warning(
+            "Breakpoint attributes are estimated for %s:%s. Manual review required" % (
+                bkp.chrom, bkp.pos))
 
 
 def get_bkp_type(bkp, fusion, orientation):
@@ -88,7 +81,7 @@ def get_bkp_type(bkp, fusion, orientation):
               fusion == 0 and bkp.strand == "-" and orientation == 1]):
         return 2
     else:
-        raise Exception("!!!!!!!!!!!!!!!!!!")
+        raise Exception("Something went terribly wrong with breakpoint expansion.")
 
 
 def get_exon_order(bkp, order):
@@ -130,10 +123,6 @@ def get_exons_involved(sv, refFlat_summary):
             get_exon_order(sv.fusionPartner1, 3)
         note2 = sv.fusionPartner2.gene + " " + \
             get_exon_order(sv.fusionPartner2, 4)
-        #sv.fusionPartner1.variantSite1, sv.fusionPartner1.variantSite2 = \
-        #    sv.fusionPartner1.startpos, sv.fusionPartner1.pos
-        #sv.fusionPartner2.variantSite1, sv.fusionPartner2.variantSite2 = \
-        #    sv.fusionPartner2.pos, sv.fusionPartner2.stoppos
         if sv.isKnownFusion:
             sv.exons = "%s and %s." % (note1, note2)
         else:
