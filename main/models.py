@@ -159,7 +159,7 @@ class sv(object):
             self.fusionGene = None
             self.isFusion = False
             self.isKnownFusion = False
-            if self.description.startswith("Protein Fusion:"):
+            if "Fusion:" in self.description:
                 if not self.bkp1.isCoding:
                     message = "coding cDNA annotation cannot be found for %s %s." \
                         % (self.bkp1.gene, self.bkp1.transcript)
