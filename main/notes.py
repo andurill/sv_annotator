@@ -378,7 +378,7 @@ def special_cases(sv):
         if re.search(r"exons \d+ - \d+", sv.Note):
             exon1, exon2 = re.search(
                 r"exons \d+ - \d+", sv.Note).group().replace("exons ", "").split(" - ")
-            if all([exon1 == "2", exon2 == "7", sv.svtype == "DUPLICATION"]):
+            if all([exon1 == "2", exon2 == "7", sv.svtype != "DUPLICATION"]):
                 custom_note = special_case_notes['vIII']
             elif all([exon1 in ("25", "26", "27"),
                       exon2 in ("27", "28"), sv.svtype != "DUPLICATION"]):
