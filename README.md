@@ -1,6 +1,6 @@
 # sv-annotator
 
-sv-annotator is a python package for annotating structural variants called by iCallSV (https://github.com/rhshah/iCallSV) for clinical/research reports. It uses the rules and logic that are currently in place in clinbx manual review and annotation. 
+sv-annotator is a python package for generating human-readable interpretations of structural variants called by iCallSV (https://github.com/rhshah/iCallSV). It uses the rules and logic that are currently in place in clinbx manual review and annotation. 
 
 ## Getting Started
 Disclaimer: The annotated data that is provided with the current release is limited to IMPACT cv6 panel and refseq canonical transcripts. The scope of this dataset can be expanded or restricted as needed.
