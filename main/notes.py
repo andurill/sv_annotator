@@ -126,7 +126,7 @@ def get_exons_involved(sv, refFlat_summary):
         if sv.isKnownFusion:
             sv.exons = "%s and %s." % (note1, note2)
         else:
-            sv.exons = "of %s to %s." % (note1, note2)
+            sv.exons = "%s to %s." % (note1, note2)
     elif all([sv.annotationPartner1.isPanel, sv.annotationPartner2.isPanel,
               sv.annotationPartner1.isCoding, sv.annotationPartner2.isCoding]):
         get_bkp_info(sv.annotationPartner1, refFlat_summary, 1)
@@ -135,7 +135,7 @@ def get_exons_involved(sv, refFlat_summary):
             note1 = "%s %s and %s %s" % \
                 (sv.annotationPartner1.gene, sv.annotationPartner1.site,
                  sv.annotationPartner2.gene, sv.annotationPartner2.site)
-            sv.exons = "with breakpoints in %s." % (note1)
+            sv.exons = "%s." % (note1)
         elif sv.isIntragenic:
             intra1, intra2 = (1, 2) if sv.annotationPartner1.strand == "+" else (2, 1)
             get_bkp_info(sv.annotationPartner1, refFlat_summary, intra1)
@@ -148,7 +148,7 @@ def get_exons_involved(sv, refFlat_summary):
                     sv.annotationPartner2.exon)
             else:
                 note1 = "exon %s" % (sv.annotationPartner1.exon)
-            sv.exons = "of %s." % (note1)
+            sv.exons = "%s." % (note1)
             sv.annotationPartner1.variantSite1, sv.annotationPartner2.variantSite1 = \
                 [sv.annotationPartner1.pos]*2
             sv.annotationPartner1.variantSite2, sv.annotationPartner2.variantSite2 = \
@@ -160,22 +160,22 @@ def get_exons_involved(sv, refFlat_summary):
                 get_exon_order(sv.annotationPartner1, 1)
             note2 = sv.annotationPartner2.gene + " " + \
                 get_exon_order(sv.annotationPartner2, 2)
-            sv.exons = "of %s and %s." % (note1, note2)
+            sv.exons = "%s and %s." % (note1, note2)
     elif sv.annotationPartner1.isPanel and sv.annotationPartner1.isCoding:
         get_bkp_info(sv.annotationPartner1, refFlat_summary, 1)
         if sv.svtype == "TRANSLOCATION":
-            note1 = "with a breakpoint in %s" % (sv.annotationPartner1.site)
+            note1 = "%s" % (sv.annotationPartner1.site)
         else:
             sv.bkpsites = get_bkpsite_note(sv, sv.annotationPartner1, None)
-            note1 = "of " + get_exon_order(sv.annotationPartner1, 1)
+            note1 = get_exon_order(sv.annotationPartner1, 1)
         sv.exons = "%s." % (note1)
     else:
         get_bkp_info(sv.annotationPartner2, refFlat_summary, 2)
         if sv.svtype == "TRANSLOCATION":
-            note1 = "with a breakpoint in %s" % (sv.annotationPartner2.site)
+            note1 = "%s" % (sv.annotationPartner2.site)
         else:
             sv.bkpsites = get_bkpsite_note(sv, None, sv.annotationPartner2)
-            note1 = "of " + get_exon_order(sv.annotationPartner2, 2)
+            note1 = get_exon_order(sv.annotationPartner2, 2)
         sv.exons = "%s." % (note1)
     return
 
@@ -187,7 +187,6 @@ def getOverlap(a, b):
     """
     a.sort(), b.sort()
     return max(0, min(a[1], b[1]) - max(a[0], b[0]))
-    #return min(a[1], b[1]) - max(a[0], b[0])
 
 
 def get_kinase_status(bkp, kinase_annotation):
@@ -216,12 +215,9 @@ def get_kinase_status(bkp, kinase_annotation):
         logger.warning(
             "Cannot find kinase domain information for %s" % (bkp.gene))
     if interval and kinase_interval:
-        #print "interval: ", interval
-        #print "kinase interval: ", kinase_interval
         interval, kinase_interval = \
             map(lambda x: [int(y) for y in x], (interval, kinase_interval))
         overlap = getOverlap(interval, kinase_interval)
-        #print "overlap: ", overlap
         if overlap == 0:
             bkp.isEntireKinase = 0
         else:
@@ -266,13 +262,21 @@ def get_prefix(sv):
     elif sv.isFusion:
         prefix += str(sv.annotation.split(":")[0]) + \
             conj + sv.svtype.lower() + \
-            " that results in a fusion "
+            " that results in a fusion of "
     elif sv.isIntragenic:
         prefix += str(sv.annotation.split(":")[0]) + \
-            conj + "intragenic " + sv.svtype.lower() + " "
+            conj + "intragenic " + sv.svtype.lower() + " of "
+    elif sv.svtype == "TRANSLOCATION":
+        if all([sv.annotationPartner1.isPanel, sv.annotationPartner2.isPanel,
+             sv.annotationPartner1.isCoding, sv.annotationPartner2.isCoding]):
+             TRA_join = " with breakpoints in "
+        else:
+            TRA_join = " with a breakpoint in "
+        prefix += str(sv.annotation.split(":")[0]) + \
+            conj + sv.svtype.lower() + TRA_join
     else:
         prefix += str(sv.annotation.split(":")[0]) + \
-            conj + sv.svtype.lower() + " "
+            conj + sv.svtype.lower() + " of "
     sv.prefix = re.sub(r' \(NM_[0-9]+\)', "", prefix, count=2)
 
 
@@ -380,17 +384,12 @@ def special_cases(sv):
                 r"exons \d+ - \d+", sv.Note).group().replace("exons ", "").split(" - ")
             if all([exon1 == "2", exon2 == "7", sv.svtype != "DUPLICATION"]):
                 custom_note = special_case_notes['vIII']
-            elif all([exon1 in ("25", "26", "27"),
-                      exon2 in ("27", "28"), sv.svtype != "DUPLICATION"]):
+            elif all([exon1 in ("25"),
+                      exon2 in ("26", "27", "28"), sv.svtype != "DUPLICATION"]):
                 custom_note = special_case_notes['CTD']
             elif all([exon1 == "18", exon2 in ("25", "26"),
                       sv.svtype == "DUPLICATION"]):
                 custom_note = special_case_notes['KDD']
-        elif re.search(r"exon \d+", sv.Note):
-            exon = re.search(
-                r"exon \d+", sv.Note).group().replace("exon ", "")
-            if exon == "27" and sv.svtype != "DUPLICATION":
-                custom_note = special_case_notes['CTD']
     elif (sv.annotationPartner1.transcript == "NM_004449" and
           sv.annotationPartner1.isCoding) or \
             (sv.annotationPartner2.transcript == "NM_004449" and
@@ -469,6 +468,8 @@ def override_fusion(sv):
     if not sv.isFusion:
         pass
     else:
+        fusion_type1, fusion_type2 = "rearrangement", "fusion"
+        fusion_conj1, fusion_conj2 = "to", "and"
         if any([
             all([sv.fusionPartner1.isKinase,
                  sv.fusionPartner1.isHotspot,
@@ -477,7 +478,9 @@ def override_fusion(sv):
                  sv.fusionPartner2.isHotspot,
                  sv.fusionPartner2.isEntireKinase == 1])]):
             sv.isKnownFusion=True
-            sv.annotation = sv.annotation.replace("rearrangement", "fusion")
+            sv.annotation = sv.annotation.replace(fusion_type1, fusion_type2)
+            sv.exons = sv.exons.replace(fusion_conj1, fusion_conj2)
+    
         elif any([
             all([sv.fusionPartner1.isKinase,
                  sv.fusionPartner1.isHotspot,
@@ -486,7 +489,8 @@ def override_fusion(sv):
                  sv.fusionPartner2.isHotspot,
                  sv.fusionPartner2.isEntireKinase != 1])]):
             sv.isKnownFusion=False
-            sv.annotation = sv.annotation.replace("fusion", "rearrangement")
+            sv.annotation = sv.annotation.replace(fusion_type2, fusion_type1)
+            sv.exons = sv.exons.replace(fusion_conj2, fusion_conj1)
     return
 
 
