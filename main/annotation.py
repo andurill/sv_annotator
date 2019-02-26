@@ -53,7 +53,7 @@ def get_translocation(sv):
     t_format = sv.annotationPartner1.chrom, sv.annotationPartner2.chrom,\
         cband1, cband2, sv.annotationPartner1.chrom, sv.annotationPartner1.pos,\
         sv.annotationPartner2.chrom, sv.annotationPartner2.pos
-    coordinate = "t(%s,%s)(%s;%s)(chr%s:g.%s::chr%s:g.%s)" % t_format
+    coordinate = "t(%s;%s)(%s;%s)(chr%s:g.%s::chr%s:g.%s)" % t_format
     return Annotation + coordinate
 
 

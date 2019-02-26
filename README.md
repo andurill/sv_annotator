@@ -7,7 +7,7 @@ Disclaimer: The annotated data that is provided with the current release is limi
 
 To get a copy of the project up and running on your local machine:
 
-git clone https://github.com/andurill/sv-annotator.git
+git clone https://github.com/andurill/sv_annotator.git
 
 | Tool | Version |
 | --- | --- |
