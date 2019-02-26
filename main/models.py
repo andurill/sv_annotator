@@ -233,7 +233,7 @@ def make_get_request(query):
     ext = "/variant_recoder/human/" + query
     try:
         request = requests.get(
-            server+ext, headers={"Content-Type": "application/json"})
+            server+ext, headers={"Content-Type": "application/json"}, timeout=5)
     except requests.ConnectionError as e:
         raise e
     except requests.exceptions.RequestException as e:
