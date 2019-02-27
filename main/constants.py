@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
+import os
+import sys
 import pandas as pd
 
 
@@ -28,7 +30,8 @@ kinase_annotation = pd.DataFrame(data=impact_468_kinase_domain_annotation)
 
 
 refFlat_summary = pd.read_csv(
-    "./data/refFlat_summary.txt", sep="\t", 
+    os.path.dirname(os.path.realpath(sys.argv[0])) + \
+            "/data/refFlat_summary.txt", sep="\t", 
         dtype={'a': str, 'b': str, 'c': str, 
         'd': str, 'e': int, 'f': str, 'g': str})
 
@@ -36,7 +39,8 @@ refFlat_summary = pd.read_csv(
 #Created: 28-Oct-2018
 # Includes cv6 genes and intronic regions tartgetted for SV
 transcript_reference = pd.read_csv(
-    "./data/REFERENCE_refseq_canonical_transcripts.txt", sep="\t",
+    os.path.dirname(os.path.realpath(sys.argv[0])) + \
+            "/data/REFERENCE_refseq_canonical_transcripts.txt", sep="\t",
         dtype={'a': str, 'b': str, 'c': str, 'd': str, 'e': str})
 
 
@@ -875,5 +879,6 @@ OncoKb_known_fusions = {
 # Created 28-Oct-2018
 # Based on /dmp/data/pubdata/refgene-canonical/VERSIONS/hg19v20160908/refFlat.canonical_all_coding_exons_aa.interval_list
 refFlat_canonical = pd.read_csv(
-    "./data/ensembl_refseq_canonical_mrna_grch37.2.txt",
+    os.path.dirname(os.path.realpath(sys.argv[0])) + \
+            "/data/ensembl_refseq_canonical_mrna_grch37.2.txt",
     sep="\t",dtype={'a': str, 'b': str})
