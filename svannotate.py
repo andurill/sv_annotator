@@ -1,6 +1,13 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
+'''
+@Description: Generate human-readable interpretations of structural variants.
+@author: jayakumg@mkscc.org
+@version: 1.0.0
+'''
+
+
 import os
 import sys
 import requests
@@ -12,13 +19,6 @@ from main.constants import *
 from main.models import sv
 from main.annotation import get_variant_annotation
 from main.notes import get_notes
-
-
-__author__ = "Gowtham J"
-__version__ = "1.0.0"
-__maintainer__ = "Gowtham J"
-__email__ = "jayakumg@mskcc.org"
-__status__ = "Development"
 
 
 # Global Variables from constants
