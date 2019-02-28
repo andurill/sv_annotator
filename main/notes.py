@@ -132,23 +132,24 @@ def get_exons_involved(sv, refFlat_summary):
         get_bkp_info(sv.annotationPartner1, refFlat_summary, 1)
         get_bkp_info(sv.annotationPartner2, refFlat_summary, 2)
         if sv.svtype == "TRANSLOCATION":
-            note1 = "%s %s and %s %s" % \
+            sv.exons = "%s %s and %s %s." % \
                 (sv.annotationPartner1.gene, sv.annotationPartner1.site,
                  sv.annotationPartner2.gene, sv.annotationPartner2.site)
-            sv.exons = "%s." % (note1)
         elif sv.isIntragenic:
             intra1, intra2 = (1, 2) if sv.annotationPartner1.strand == "+" else (2, 1)
             get_bkp_info(sv.annotationPartner1, refFlat_summary, intra1)
             get_bkp_info(sv.annotationPartner2, refFlat_summary, intra2)
             sv.bkpsites = get_bkpsite_note(sv, sv.annotationPartner1,
                                            sv.annotationPartner2)
-            if not sv.annotationPartner1.exon == sv.annotationPartner2.exon:
-                note1 = "exons %s - %s" % (
+            if all([sv.annotationPartner1.intron, sv.annotationPartner2.intron,
+                    sv.annotationPartner1.intron == sv.annotationPartner2.intron]):
+                sv.exons = "intron %s." % (sv.annotationPartner1.intron)
+            elif not sv.annotationPartner1.exon == sv.annotationPartner2.exon:
+                sv.exons = "exons %s - %s." % (
                     sv.annotationPartner1.exon,
                     sv.annotationPartner2.exon)
             else:
-                note1 = "exon %s" % (sv.annotationPartner1.exon)
-            sv.exons = "%s." % (note1)
+                sv.exons = "exon %s." % (sv.annotationPartner1.exon)
             sv.annotationPartner1.variantSite1, sv.annotationPartner2.variantSite1 = \
                 [sv.annotationPartner1.pos]*2
             sv.annotationPartner1.variantSite2, sv.annotationPartner2.variantSite2 = \
@@ -264,11 +265,16 @@ def get_prefix(sv):
             conj + sv.svtype.lower() + \
             " that results in a fusion of "
     elif sv.isIntragenic:
-        prefix += str(sv.annotation.split(":")[0]) + \
-            conj + "intragenic " + sv.svtype.lower() + " of "
+        if all([sv.annotationPartner1.intron, sv.annotationPartner2.intron,
+                sv.annotationPartner1.intron == sv.annotationPartner2.intron]):
+            prefix += str(sv.annotation.split(":")[0]) + \
+                conj + "intragenic " + sv.svtype.lower() + " with breakpoints in "
+        else:
+            prefix += str(sv.annotation.split(":")[0]) + \
+                conj + "intragenic " + sv.svtype.lower() + " of "
     elif sv.svtype == "TRANSLOCATION":
         if all([sv.annotationPartner1.isPanel, sv.annotationPartner2.isPanel,
-             sv.annotationPartner1.isCoding, sv.annotationPartner2.isCoding]):
+                sv.annotationPartner1.isCoding, sv.annotationPartner2.isCoding]):
              TRA_join = " with breakpoints in "
         else:
             TRA_join = " with a breakpoint in "
