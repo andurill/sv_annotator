@@ -1,0 +1,9 @@
+README.md
+setup.py
+constants/__init__.py
+constants/constants.py
+constants/data/__init__.py
+cvr_sv_annotator.egg-info/PKG-INFO
+cvr_sv_annotator.egg-info/SOURCES.txt
+cvr_sv_annotator.egg-info/dependency_links.txt
+cvr_sv_annotator.egg-info/top_level.txt
