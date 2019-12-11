@@ -48,7 +48,7 @@ def get_bkp_info(bkp, refFlat_summary, orientation, fusion=0):
         else:
             bkp.variantSite1, bkp.variantSite2 = bkp.startpos, bkp.pos
     elif bkp.desc.startswith("Intron "):
-        exon = bkp.desc.split(" ")[5]
+        exon = bkp.desc.split(" ")[-1]
         if "after" in bkp.desc:
             bkp.intron = exon
             if get_bkp_type(bkp, fusion, orientation) == 1:
