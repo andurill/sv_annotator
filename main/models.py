@@ -4,10 +4,16 @@ import sys
 import logging
 import requests
 import pandas as pd
-from config import VEP, VEP_CACHE, PERL
+from config import VEP, VEP_CACHE, PERL, FASTA
 import random
+import subprocess
+from datetime import datetime
 
 logger = logging.getLogger("basic_logger")
+
+
+def timestamp():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S ")
 
 
 def create_cache(input_data):
@@ -46,9 +52,10 @@ class bkp(object):
             transcript_reference["Gene"] == self.gene
         ].to_dict("list")
         self.transcript = reference["Lookup_Transcript"] or None
-        if not self.transcript:
+        self.cdna = "chr" + self.chrom + ":g." + str(self.pos)
+        if self.transcript is None:
             logger.warning("Cannot find canonical transcript for " + str(self.gene))
-            self.cdna = "chr" + self.chrom + ":g." + str(self.pos)
+            # self.cdna = "chr" + self.chrom + ":g." + str(self.pos)
         else:
             try:
                 self.transcript, self.cdna = get_cdna_pos(self, cache)
@@ -251,69 +258,98 @@ def get_cdna_pos(bkp, cache):
     vep server
     bkp -> tuple
     """
-    return get_cdna_pos_from_cache(bkp, cache) if cache else get_cdna_pos_from_api(bkp)
+    if cache is None:
+        tx, cdna = get_cdna_pos_from_api(bkp)
+    else:
+        tx, cdna = get_cdna_pos_from_cache(bkp, cache)
+    return tx, cdna
+    # return (
+    #     get_cdna_pos_from_cache(bkp, cache)
+    #     if cache is not None
+    #     else get_cdna_pos_from_api(bkp)
+    # )
 
 
-def build_cache(bkps):
+def build_cache(bkps, transcript_reference):
+    # print(transcript_reference["Lookup_Transcript"])
+
     def filter_for_select_tx(list_of_dict):
-        return list(
-            filter(
-                lambda x: x["transcript_id"] in reference["Lookup_Transcript"],
-                list_of_dict,
+        try:
+            return list(
+                filter(
+                    lambda x: x["transcript_id"]
+                    in transcript_reference["Lookup_Transcript"].values,
+                    list_of_dict,
+                )
             )
-        )
+        except TypeError as e:
+            return []
 
-    chrom, coord = bkp.chrom, bkp.pos
     try:
         tmp_dir = os.environ["TMP"]
     except KeyError:
         tmp_dir = os.getcwd()
-    input_file_name = (
-        "_".join(["variant", chrom, coord, random.getrandbits(128)]) + ".vcf"
-    )
+    input_file_name = "_".join(["variant", str(random.getrandbits(128))]) + ".vcf"
     out_file_name = input_file_name.replace(".vcf", ".txt")
     with open(os.path.join(tmp_dir, input_file_name), "w") as f:
         f.write("##fileformat=VCFv4.2\n")
-        f.write("\t".join(["#CHROM", "POS", "ID", "REF", "ALT"]) + "\n")
-        f.write("\t".join([chrom, pos, ".", "N", "-"]) + "\n")
+        bkps.to_csv(f, header=True, index=None, sep="\t", mode="a")
+
     vep_cmd = " ".join(
         [
             PERL,
             VEP,
             "--species",
-            "homo_sapiens",
+            "homo_sapiens_merged",
             "--assembly",
             "GRCh37",
             "--offline",
             "--no_progress",
             "--no_stats",
+            "--buffer_size",
+            "10000",
             "--hgvs",
             "--minimal",
             "--canonical",
             "--dir",
             VEP_CACHE,
+            "--fasta",
+            FASTA,
+            "--fork",
+            "12",
             "--json",
             "--input_file",
             os.path.join(tmp_dir, input_file_name),
             "--out",
-            os.path.join(os.getcwd(), "vep_annotation.txt"),
+            os.path.join(os.getcwd(), out_file_name),
         ]
     )
 
     try:
+        print(timestamp() + "Running VEP...")
         subprocess.check_call(vep_cmd, shell=True)
     except subprocess.CalledProcessError:
         raise
+    try:
+        print(timestamp() + "Reading json outputs from vep:")
+        annotation_results = pd.read_json(
+            os.path.join(os.getcwd(), out_file_name), lines=True
+        )[["id", "transcript_consequences"]]
+    except IOError as e:
+        print(timestamp() + "VEP annotated json file cannot be found. Check it VEP ran successfully.")
+        raise
 
-    annotation_results = pd.read_json(
-        os.path.join(os.getcwd(), "vep_annotation.txt"), lines=True
-    )[["id", "transcript_consequences"]]
+    print(timestamp() + "Parsing JSON results.")
+    annotation_results.dropna(inplace=True)
     annotation_results["id"] = (
         annotation_results["id"].str.replace("_N/-", "").str.replace("_", ":")
     )
+    print(timestamp() + "Filtering for canonical transcripts.")
     annotation_results["transcript_consequences"] = annotation_results[
         "transcript_consequences"
     ].apply(filter_for_select_tx)
+    # print(annotation_results["transcript_consequences"])
+    print(timestamp() + "Completed filtering")
     annotation_results = (
         pd.DataFrame(
             annotation_results["transcript_consequences"].tolist(),
@@ -322,35 +358,40 @@ def build_cache(bkps):
         .stack()
         .reset_index(name="transcript_consequences")[["id", "transcript_consequences"]]
     )
-    annotation_results["id"] = (
-        annotation_results["id"].str.replace("_N/-", "").str.replace("_", ":")
-    )
-    annotation_results[["hgvsc", "transcript_id", "gene_symbol"]] = annotation_results[
+    print(timestamp() + "Coverted to long.")
+    # print(annotation_results["transcript_consequences"])
+    # annotation_results[["hgvsc", "transcript_id", "gene_symbol"]] = annotation_results[
+    #     "transcript_consequences"
+    # ].apply(pd.Series)[["hgvsc", "transcript_id", "gene_symbol"]]
+    annotation_results[["hgvsc", "transcript_id"]] = annotation_results[
         "transcript_consequences"
-    ].apply(pd.Series)[["hgvsc", "transcript_id", "gene_symbol"]]
+    ].apply(pd.Series)[["hgvsc", "transcript_id"]]
+    print(timestamp() + "Expanded columns.")
     annotation_results.drop(["transcript_consequences"], axis=1, inplace=True)
-    annotation_results.dropna(subset=["gene_symbol"], inplace=True)
+    # annotation_results.dropna(subset=["gene_symbol"], inplace=True)
     annotation_results["hgvsc"] = (
         annotation_results["hgvsc"].str.replace(r".*:", "").str.replace(r"del.*", "")
     )
+    print(timestamp() + "Completed parsing JSON results")
     return annotation_results
 
 
 def get_cdna_pos_from_cache(bkp, cache):
+    cdna = None
     for tx in bkp.transcript:
         try:
             query_cdna = cache[
-                (cache["id"] == ":".join([bkp.chrom, bkp.pos]))
-                & (cache["transcript_id"] == bkp.transcript)
-            ]["transcript_id"].tolist()[0]
+                (cache["id"].values == ":".join([bkp.chrom, str(bkp.pos)]))
+                & (cache["transcript_id"].values == tx)
+            ]["hgvsc"].tolist()[0]
             if query_cdna.startswith("c.-") or query_cdna.startswith("c.*"):
-                pass
+                continue
             else:
                 cdna = str(query_cdna)
                 break
-        except (KeyError, IndexError):
-            pass
-    if not cdna:
+        except (KeyError, IndexError) as e:
+            cdna = "chr" + bkp.chrom + ":g." + str(bkp.pos)
+    if cdna is None:
         cdna = "chr" + bkp.chrom + ":g." + str(bkp.pos)
     return tx, cdna
 
