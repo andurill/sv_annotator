@@ -4,7 +4,6 @@
 """
 @Description: Generate human-readable interpretations of structural variants.
 @author: jayakumg@mkscc.org
-@version: 1.0.0
 """
 
 
@@ -19,9 +18,10 @@ import argparse
 import multiprocessing as mp
 import contextlib
 from main.constants import *
-from main.models import sv
+from main.models import sv, build_cache
 from main.annotation import get_variant_annotation
 from main.notes import get_notes
+from main.models import timestamp
 
 
 # Global Variables from constants
@@ -29,6 +29,7 @@ oncoKb = OncoKb_known_fusions
 refFlat = refFlat_canonical
 tumourSuppressor = IMPACT_TumourSuppressors
 hotspot = IMPACT_Hotspots
+cache = None
 
 
 def main():
@@ -57,6 +58,9 @@ def main():
         action="store",
         default=os.path.join(os.getcwd(), "SVannotated_results.txt"),
         help="output file to print annotation results for multiple structural variants",
+    )
+    parser.add_argument(
+        "--offline", action="store_true", help="run annotation using cache"
     )
     args = parser.parse_args()
 
@@ -94,6 +98,34 @@ def main():
                 "Fusion",
             ],
         )
+        cache_input_data = pd.concat(
+            [
+                svdata[["Chr1", "Pos1"]].rename(
+                    columns={"Chr1": "#CHROM", "Pos1": "POS"}
+                ),
+                svdata[["Chr2", "Pos2"]].rename(
+                    columns={"Chr2": "#CHROM", "Pos2": "POS"}
+                ),
+            ],
+            ignore_index=True,
+            axis=0,
+        )
+        cache_input_data.drop_duplicates(inplace=True)
+        cache_input_data["ID"], cache_input_data["REF"], cache_input_data[
+            "ALT"
+        ] = ".,N,-".split(",")
+
+        try:
+            print(timestamp() + "Proceeding to build annotation cache...")
+            global cache
+            cache = build_cache(
+                cache_input_data[["#CHROM", "POS", "ID", "REF", "ALT"]],
+                transcript_reference,
+            )
+        except Exception as e:
+            print(timestamp() + "Failed to build annotation cache using VEP.")
+            raise
+
         svdata["coord1"] = svdata["Chr1"] + ":" + svdata["Pos1"]
         svdata["coord2"] = svdata["Chr2"] + ":" + svdata["Pos2"]
         svdata["Genes"] = svdata["Gene1"] + " / " + svdata["Gene2"]
@@ -125,6 +157,7 @@ def main():
         cores = int(mp.cpu_count() - 1)
         try:
             # create jobs
+            print(timestamp() + "Starting variant annotation...")
             with contextlib.closing(mp.Pool(processes=cores)) as pool:
                 annotated_SVs = pool.map(annotate_SV, sv_strings)
         except Exception as e:
@@ -139,6 +172,7 @@ def main():
         )
 
         new.to_csv(args.out_file, header=True, sep="\t", index=False)
+        print(timestamp() + "Completed variant annotation!")
     # note, annotation, position = annotate_SV(args.sv, logger)
 
     # Send log contents to a string and close the stream
@@ -172,20 +206,28 @@ def annotate_SV(raw):
     try:
         svtype, bkp1, bkp2, genes, site1, site2, description = raw.split(",")
     except ValueError as e:
+        # print(e)
         # logger.critical(e)
         return note, annotation, position
 
     try:
         variant = sv(svtype, bkp1, bkp2, genes, site1, site2, description)
     except Exception as e:
+        # print(e)
         # logger.critical(e)
         return note, annotation, position
 
     try:
         variant.expand(
-            transcript_reference, kinase_annotation, hotspot, tumourSuppressor, oncoKb
+            transcript_reference,
+            kinase_annotation,
+            hotspot,
+            tumourSuppressor,
+            oncoKb,
+            cache,
         )
     except Exception as e:
+        # print(e)
         # logger.critical(e)
         return note, annotation, position
 
@@ -193,6 +235,7 @@ def annotate_SV(raw):
         annotation = get_variant_annotation(variant)
         sv.annotation = annotation
     except Exception as e:
+        # print(e)
         # logger.critical(e)
         return note, annotation, position
 
@@ -201,6 +244,7 @@ def annotate_SV(raw):
             variant, refFlat_summary, kinase_annotation
         )
     except Exception as e:
+        # print(e)
         # logger.critical(e)
         return note, annotation, position
 
