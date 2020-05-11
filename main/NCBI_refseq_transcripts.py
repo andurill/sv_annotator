@@ -12,7 +12,7 @@ patterns = OrderedDict(
     [
         ("GeneID", re.compile(r".*GeneID:([0-9]+)")),
         ("HGNC", re.compile(r".*HGNC:([0-9]+)")),
-        ("Gene", re.compile(r".*gene=(\S+);")),
+        ("Gene", re.compile(r".*gene=([A-Za-z0-9-_]+);")),
         ("Tx", re.compile(r".*transcript_id=(NM_[0-9]+\.[0-9]+)")),
         ("Tag", re.compile(r".*tag=(.+);")),
     ]
