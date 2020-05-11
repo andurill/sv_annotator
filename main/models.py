@@ -321,7 +321,7 @@ def build_cache(bkps, transcript_reference):
             "--input_file",
             os.path.join(tmp_dir, input_file_name),
             "--out",
-            os.path.join(os.getcwd(), out_file_name),
+            os.path.join(tmp_dir, out_file_name),
         ]
     )
 
@@ -333,7 +333,7 @@ def build_cache(bkps, transcript_reference):
     try:
         print(timestamp() + "Reading json outputs from vep:")
         annotation_results = pd.read_json(
-            os.path.join(os.getcwd(), out_file_name), lines=True
+            os.path.join(tmp_dir, out_file_name), lines=True
         )[["id", "transcript_consequences"]]
     except IOError as e:
         print(timestamp() + "VEP annotated json file cannot be found. Check it VEP ran successfully.")
@@ -348,7 +348,6 @@ def build_cache(bkps, transcript_reference):
     annotation_results["transcript_consequences"] = annotation_results[
         "transcript_consequences"
     ].apply(filter_for_select_tx)
-    # print(annotation_results["transcript_consequences"])
     print(timestamp() + "Completed filtering")
     annotation_results = (
         pd.DataFrame(
@@ -359,16 +358,11 @@ def build_cache(bkps, transcript_reference):
         .reset_index(name="transcript_consequences")[["id", "transcript_consequences"]]
     )
     print(timestamp() + "Coverted to long.")
-    # print(annotation_results["transcript_consequences"])
-    # annotation_results[["hgvsc", "transcript_id", "gene_symbol"]] = annotation_results[
-    #     "transcript_consequences"
-    # ].apply(pd.Series)[["hgvsc", "transcript_id", "gene_symbol"]]
     annotation_results[["hgvsc", "transcript_id"]] = annotation_results[
         "transcript_consequences"
     ].apply(pd.Series)[["hgvsc", "transcript_id"]]
     print(timestamp() + "Expanded columns.")
     annotation_results.drop(["transcript_consequences"], axis=1, inplace=True)
-    # annotation_results.dropna(subset=["gene_symbol"], inplace=True)
     annotation_results["hgvsc"] = (
         annotation_results["hgvsc"].str.replace(r".*:", "").str.replace(r"del.*", "")
     )
