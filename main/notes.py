@@ -668,5 +668,5 @@ def get_notes(sv, refFlat_summary, kinase_annotation):
     sv.Note = "".join([sv.prefix, sv.exons, sv.bkpsites, sv.misc, sv.sig])
     annotation = sv.annotation
     position = get_position(sv)
-    note = special_cases(sv)
+    note = ": ".join(["Note", special_cases(sv)])
     return annotation, note, position
