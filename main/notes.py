@@ -666,7 +666,6 @@ def get_notes(sv, refFlat_summary, kinase_annotation):
     # Determine the clinical significance of the SV
     functional_significance(sv)
     sv.Note = "".join([sv.prefix, sv.exons, sv.bkpsites, sv.misc, sv.sig])
-    annotation = sv.annotation
     position = get_position(sv)
     note = ": ".join(["Note", special_cases(sv)])
-    return annotation, note, position
+    return note, position

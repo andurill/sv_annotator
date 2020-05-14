@@ -194,30 +194,20 @@ def main():
 
 
 def annotate_SV(raw):
-    """[summary]
-    
-    Arguments:
-        raw {[type]} -- [description]
-    
-    Returns:
-        [type] -- [description]
     """
-    note, annotation, position = [None] * 3
+    Main function to initialize sv and breakpoints
+    objects based on given inputs and call methods to 
+    generate annotation and notes.
+    str -> tuple
+    """
+    note, annotation, position, sv_type = [None] * 4
     try:
         svtype, bkp1, bkp2, genes, site1, site2, description = raw.split(",")
     except ValueError as e:
-        # print(e)
-        # logger.critical(e)
-        return note, annotation, position
+        return note, annotation, position, sv_type
 
     try:
-        variant = sv(svtype, bkp1, bkp2, genes, site1, site2, description)
-    except Exception as e:
-        # print(e)
-        # logger.critical(e)
-        return note, annotation, position
-
-    try:
+        variant = sv(svtype, bkp1, bkp2, genes, site1, site2, description
         variant.expand(
             transcript_reference,
             kinase_annotation,
@@ -226,29 +216,16 @@ def annotate_SV(raw):
             oncoKb,
             cache,
         )
-    except Exception as e:
-        # print(e)
-        # logger.critical(e)
-        return note, annotation, position
-
-    try:
+        
         annotation = get_variant_annotation(variant)
-        sv.annotation = annotation
-    except Exception as e:
-        # print(e)
-        # logger.critical(e)
-        return note, annotation, position
-
-    try:
-        annotation, note, position = get_notes(
+        
+        note, position, sv_type = get_notes(
             variant, refFlat_summary, kinase_annotation
         )
     except Exception as e:
-        # print(e)
-        # logger.critical(e)
-        return note, annotation, position
+        return note, annotation, position, sv_type
 
-    return (note, annotation, position)
+    return (note, annotation, position, sv_type)
 
 
 if __name__ == "__main__":
