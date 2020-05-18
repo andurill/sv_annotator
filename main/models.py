@@ -270,7 +270,7 @@ def get_cdna_pos(bkp, cache):
     # )
 
 
-def build_cache(bkps, transcript_reference):
+def build_cache(bkps, transcript_reference, verbose):
     # print(transcript_reference["Lookup_Transcript"])
 
     def filter_for_select_tx(list_of_dict):
@@ -326,17 +326,26 @@ def build_cache(bkps, transcript_reference):
     )
 
     try:
+        FNULL = open("/dev/null", "w")
         print(timestamp() + "Running VEP...")
-        subprocess.check_call(vep_cmd, shell=True)
+        if verbose:
+            subprocess.check_call(vep_cmd, shell=True)
+        else:
+            subprocess.check_call(vep_cmd, shell=True, stdout=FNULL)
+        FNULL.close()
     except subprocess.CalledProcessError:
         raise
+
     try:
         print(timestamp() + "Reading json outputs from vep:")
         annotation_results = pd.read_json(
             os.path.join(tmp_dir, out_file_name), lines=True
         )[["id", "transcript_consequences"]]
     except IOError as e:
-        print(timestamp() + "VEP annotated json file cannot be found. Check it VEP ran successfully.")
+        print(
+            timestamp()
+            + "VEP annotated json file cannot be found. Check it VEP ran successfully."
+        )
         raise
 
     print(timestamp() + "Parsing JSON results.")
@@ -587,4 +596,3 @@ class BothBreakpointsNoncoding(Error):
             self,
             "Atleast one of the breakpoints need to be in target panel and in coding region",
         )
-

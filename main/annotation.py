@@ -15,9 +15,10 @@ def get_variant_annotation(sv):
     sv -> func(sv)
     """
     if sv.svtype == "TRANSLOCATION":
-        return get_translocation(sv)
+        sv.annotation = get_translocation(sv)
     else:
-        return get_other_svs(sv)
+        sv.annotation = get_other_svs(sv)
+    return sv.annotation
 
 
 def get_translocation(sv):
@@ -250,4 +251,3 @@ class MultipleCytoBand(Error):
         Exception.__init__(
             self, self, "Multiple cytobands identified for the breakpoint: " + bkp
         )
-

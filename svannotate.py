@@ -22,7 +22,10 @@ from main.models import sv, build_cache
 from main.annotation import get_variant_annotation
 from main.notes import get_notes
 from main.models import timestamp
+import traceback
 
+#suppress pandas copy warning
+pd.options.mode.chained_assignment = None
 
 # Global Variables from constants
 oncoKb = OncoKb_known_fusions
@@ -30,6 +33,7 @@ refFlat = refFlat_canonical
 tumourSuppressor = IMPACT_TumourSuppressors
 hotspot = IMPACT_Hotspots
 cache = None
+VERBOSE = False
 
 
 def main():
@@ -54,15 +58,25 @@ def main():
     parser.add_argument(
         "-o",
         "--out_file",
-        type=argparse.FileType("w"),
+        type=str,
+        # type=argparse.FileType("w"),
         action="store",
         default=os.path.join(os.getcwd(), "SVannotated_results.txt"),
         help="output file to print annotation results for multiple structural variants",
     )
     parser.add_argument(
-        "--offline", action="store_true", help="run annotation using cache"
+        "-of", "--offline", action="store_true", help="run annotation using cache"
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Print detailed exceptions"
     )
     args = parser.parse_args()
+
+    # Set verbose if required
+    global VERBOSE
+    if args.verbose:
+        global VERBOSE
+        VERBOSE = True
 
     # Create the logger
     logger = logging.getLogger("basic_logger")
@@ -78,12 +92,10 @@ def main():
 
     # Call main function
     if args.input_file:
-        svdata = pd.read_csv(
-            args.input_file,
-            header="infer",
-            sep="\t",
-            dtype=str,
-            usecols=[
+        sv_all_data = pd.read_csv(args.input_file, header="infer", sep="\t", dtype=str)
+
+        svdata = sv_all_data[
+            [
                 "TumorId",
                 "NormalId",
                 "Chr1",
@@ -96,8 +108,9 @@ def main():
                 "Site1Description",
                 "Site2Description",
                 "Fusion",
-            ],
-        )
+            ]
+        ]
+
         cache_input_data = pd.concat(
             [
                 svdata[["Chr1", "Pos1"]].rename(
@@ -121,6 +134,7 @@ def main():
             cache = build_cache(
                 cache_input_data[["#CHROM", "POS", "ID", "REF", "ALT"]],
                 transcript_reference,
+                VERBOSE,
             )
         except Exception as e:
             print(timestamp() + "Failed to build annotation cache using VEP.")
@@ -165,8 +179,11 @@ def main():
 
         new = pd.concat(
             [
-                svdata,
-                pd.DataFrame(annotated_SVs, columns=["Note", "Annotation", "Position"]),
+                sv_all_data,
+                pd.DataFrame(
+                    annotated_SVs,
+                    columns=["Note", "Annotation", "Position", "oncokb_sv_type"],
+                ),
             ],
             axis=1,
         )
@@ -200,14 +217,14 @@ def annotate_SV(raw):
     generate annotation and notes.
     str -> tuple
     """
-    note, annotation, position, sv_type = [None] * 4
+    note, annotation, position, oncokb_sv_type = [None] * 4
     try:
         svtype, bkp1, bkp2, genes, site1, site2, description = raw.split(",")
-    except ValueError as e:
-        return note, annotation, position, sv_type
+    except ValueError:
+        return note, annotation, position, oncokb_sv_type
 
     try:
-        variant = sv(svtype, bkp1, bkp2, genes, site1, site2, description
+        variant = sv(svtype, bkp1, bkp2, genes, site1, site2, description)
         variant.expand(
             transcript_reference,
             kinase_annotation,
@@ -216,16 +233,18 @@ def annotate_SV(raw):
             oncoKb,
             cache,
         )
-        
+
         annotation = get_variant_annotation(variant)
-        
-        note, position, sv_type = get_notes(
+
+        note, position, oncokb_sv_type = get_notes(
             variant, refFlat_summary, kinase_annotation
         )
     except Exception as e:
-        return note, annotation, position, sv_type
+        if VERBOSE:
+            print(raw + "\n" + traceback.format_exc(e))
+        return note, annotation, position, oncokb_sv_type
 
-    return (note, annotation, position, sv_type)
+    return note, annotation, position, oncokb_sv_type
 
 
 if __name__ == "__main__":

@@ -648,6 +648,20 @@ def override_fusion(sv):
     return
 
 
+def get_sv_oncokb_type(sv):
+    """
+    This function returns the oncokb sv type `FUSION`, `vIII`, `KDD` or `CTD` 
+    sv -> str
+    """
+    if sv.isKnownFusion:
+        return "FUSION"
+    else:
+        special_vars = ["vIII", "KDD", "CTD"]
+        for i, var in enumerate(special_vars):
+            if var in sv.Note and "EGFR" in sv.Note:
+                return special_vars[i]
+
+
 def get_notes(sv, refFlat_summary, kinase_annotation):
     """
     Main note function to call relevant helper functions
@@ -667,5 +681,6 @@ def get_notes(sv, refFlat_summary, kinase_annotation):
     functional_significance(sv)
     sv.Note = "".join([sv.prefix, sv.exons, sv.bkpsites, sv.misc, sv.sig])
     position = get_position(sv)
-    note = ": ".join(["Note", special_cases(sv)])
-    return note, position
+    sv.Note = ": ".join(["Note", special_cases(sv)])
+    oncokb_sv_type = get_sv_oncokb_type(sv)
+    return sv.Note, position, oncokb_sv_type
