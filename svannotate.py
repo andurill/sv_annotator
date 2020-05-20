@@ -236,7 +236,7 @@ def annotate_SV(raw):
 
         annotation = get_variant_annotation(variant)
 
-        note, position, oncokb_sv_type = get_notes(
+        annotation, note, position, oncokb_sv_type = get_notes(
             variant, refFlat_summary, kinase_annotation
         )
     except Exception as e:

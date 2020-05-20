@@ -683,4 +683,4 @@ def get_notes(sv, refFlat_summary, kinase_annotation):
     position = get_position(sv)
     sv.Note = ": ".join(["Note", special_cases(sv)])
     oncokb_sv_type = get_sv_oncokb_type(sv)
-    return sv.Note, position, oncokb_sv_type
+    return sv.annotation, sv.Note, position, oncokb_sv_type
