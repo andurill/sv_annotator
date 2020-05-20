@@ -344,9 +344,16 @@ def build_cache(bkps, transcript_reference, verbose):
     except IOError as e:
         print(
             timestamp()
-            + "VEP annotated json file cannot be found. Check it VEP ran successfully."
+            + "VEP annotated json file cannot be found. Check if VEP ran successfully."
         )
         raise
+
+    # Remove temp files
+    try:
+        map(lambda x: os.remove(x), (input_file_name, out_file_name))
+    except OSError as e:
+        # Ignore if temp files cannot be removed due to permissions
+        pass
 
     print(timestamp() + "Parsing JSON results.")
     annotation_results.dropna(inplace=True)
