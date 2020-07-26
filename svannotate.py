@@ -136,9 +136,12 @@ def main():
                 transcript_reference,
                 VERBOSE,
             )
+        except ValueError:
+            print(timestamp() + "Input SV data appears to be empty. Annotation process will exit.")
+            print(traceback.format_exc())
         except Exception as e:
             print(timestamp() + "Failed to build annotation cache using VEP.")
-            raise
+            print(traceback.format_exc())
 
         svdata["coord1"] = svdata["Chr1"] + ":" + svdata["Pos1"]
         svdata["coord2"] = svdata["Chr2"] + ":" + svdata["Pos2"]
